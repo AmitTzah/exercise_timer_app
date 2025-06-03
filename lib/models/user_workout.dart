@@ -20,11 +20,15 @@ class UserWorkout extends HiveObject {
   @HiveField(4)
   int totalWorkoutTime; // in seconds
 
+  @HiveField(5) // New field for alternating sets
+  bool alternateSets;
+
   UserWorkout({
     required this.id,
     required this.name,
     required this.exercises,
     required this.intervalTimeBetweenSets,
     required this.totalWorkoutTime,
+    this.alternateSets = false, // Default to false
   });
 }

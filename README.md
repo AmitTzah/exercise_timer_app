@@ -20,12 +20,15 @@ A personal Android exercise timer app designed to manage alternating sets for di
         *   Workout Name.
         *   List of exercises (each with name and number of sets).
         *   Interval Time (in seconds) between sets.
+        *   **Alternate Sets Checkbox:** Toggles between sequential and alternating set progression.
     *   Displays: Calculated total workout duration.
     *   Action: "Save Workout" button.
     *   **Persistence:** User-defined workouts (including exercises, sets, and interval time) are saved using `Hive`.
 
 *   **Workout Mode:**
-    *   When "Start Workout" is pressed from the Home Screen, a timer begins, cycling through the exercises defined in the selected workout, one set at a time.
+    *   When "Start Workout" is pressed from the Home Screen, a timer begins, cycling through the exercises defined in the selected workout.
+    *   **Sequential Sets (Default):** Completes all sets of one exercise before moving to the next.
+    *   **Alternating Sets (If enabled):** Cycles through one set of each exercise before moving to the next set number for any exercise. For example, if you have Exercise A (3 sets) and Exercise B (2 sets), the order would be: A-Set1, B-Set1, A-Set2, B-Set2, A-Set3.
     *   The app emits a "next_set.mp3" sound at the end of each interval, signaling the end of the current interval and the immediate start of the next exercise's set.
     *   **Display during workout:**
         *   Current exercise to perform.
@@ -59,7 +62,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
 
 ## Key App-wide Features
 
-*   **Alternating Sets Timer:** Core workout mechanism.
+*   **Configurable Set Progression:** Users can choose between sequential or alternating sets.
 *   **Fixed Interval Timing:** Each set within a defined time slot.
 *   **Automated Audio Cues:** "next_set.mp3" for interval transitions, "session_complete.mp3" for session completion.
 *   **Progress Tracking:** Displays relevant progress information for workouts and goals.

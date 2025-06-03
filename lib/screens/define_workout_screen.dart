@@ -16,13 +16,16 @@ class DefineWorkoutScreen extends StatefulWidget {
 class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _workoutNameController = TextEditingController();
-  final TextEditingController _newExerciseNameController = TextEditingController();
-  final TextEditingController _newExerciseSetsController = TextEditingController();
+  final TextEditingController _newExerciseNameController =
+      TextEditingController();
+  final TextEditingController _newExerciseSetsController =
+      TextEditingController();
   final TextEditingController _intervalTimeController = TextEditingController();
 
   List<Exercise> _exercises = [];
   int _intervalTime = 60; // Default to 60 seconds
   String _workoutId = const Uuid().v4(); // Generate new ID for new workouts
+  bool _alternateSets = false; // New state variable for alternate sets
 
   @override
   void initState() {
@@ -34,9 +37,11 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
       _exercises = List.from(widget.workout!.exercises);
       _intervalTime = widget.workout!.intervalTimeBetweenSets;
       _intervalTimeController.text = _intervalTime.toString();
+      _alternateSets = widget.workout!.alternateSets; // Initialize with existing value
     } else {
       // Creating new workout, set default interval time
       _intervalTimeController.text = _intervalTime.toString();
+      _alternateSets = false; // Default for new workouts
     }
   }
 
@@ -62,7 +67,9 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid exercise name and number of sets.'),
+          content: Text(
+            'Please enter a valid exercise name and number of sets.',
+          ),
         ),
       );
     }
@@ -97,6 +104,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
         exercises: _exercises,
         intervalTimeBetweenSets: _intervalTime,
         totalWorkoutTime: totalDuration,
+        alternateSets: _alternateSets, // Save the new field
       );
 
       await DatabaseService.saveUserWorkout(newWorkout);
@@ -110,7 +118,9 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.workout == null ? 'Define New Workout' : 'Edit Workout'),
+        title: Text(
+          widget.workout == null ? 'Define New Workout' : 'Edit Workout',
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -132,7 +142,10 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                 },
               ),
               const SizedBox(height: 20),
-              const Text('Exercises:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'Exercises:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               Row(
                 children: [
                   Expanded(
@@ -191,7 +204,9 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                   hintText: 'e.g., 60',
                 ),
                 validator: (value) {
-                  if (value == null || int.tryParse(value) == null || int.parse(value) <= 0) {
+                  if (value == null ||
+                      int.tryParse(value) == null ||
+                      int.parse(value) <= 0) {
                     return 'Please enter a valid interval time (seconds).';
                   }
                   return null;
@@ -201,6 +216,17 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                     _intervalTime = int.tryParse(value) ?? 60;
                   });
                 },
+              ),
+              const SizedBox(height: 10), // Reduced space
+              CheckboxListTile(
+                title: const Text('Alternate Sets'),
+                value: _alternateSets,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _alternateSets = value ?? false;
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading, // Checkbox on the left
               ),
               const SizedBox(height: 20),
               Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:exercise_timer_app/models/user_workout.dart'; // Import UserWorkout
+import 'package:exercise_timer_app/models/exercise.dart'; // Import Exercise
 import 'package:exercise_timer_app/services/audio_service.dart';
 import 'package:exercise_timer_app/screens/workout_summary_display_screen.dart';
 
@@ -16,24 +17,46 @@ class WorkoutScreen extends StatefulWidget {
   State<WorkoutScreen> createState() => _WorkoutScreenState();
 }
 
+// Helper class for alternating sets
+class _WorkoutSet {
+  final Exercise exercise;
+  final int setNumber;
+
+  _WorkoutSet({required this.exercise, required this.setNumber});
+}
+
 class _WorkoutScreenState extends State<WorkoutScreen> {
   late AudioService _audioService;
   late Timer _timer;
-  int _currentExerciseIndex = 0;
-  int _currentSetInExercise = 1;
   int _currentIntervalTimeRemaining = 0;
   int _totalSetsCompleted = 0;
   int _totalWorkoutDuration = 0; // in seconds
   DateTime? _workoutStartTime;
   bool _isPaused = false;
 
+  // Variables for workout sequence
+  late List<_WorkoutSet> _exercisesToPerform;
+  int _currentOverallSetIndex = 0; // Index in _exercisesToPerform list
+
   @override
   void initState() {
     super.initState();
     _audioService = AudioService();
     _workoutStartTime = DateTime.now();
-    _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets; // Use from UserWorkout
-    _startTimer();
+
+    if (widget.workout.alternateSets) {
+      _exercisesToPerform = _generateAlternatingWorkoutSequence();
+    } else {
+      _exercisesToPerform = _generateSequentialWorkoutSequence();
+    }
+
+    if (_exercisesToPerform.isNotEmpty) {
+      _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets;
+      _startTimer();
+    } else {
+      // Handle case where workout has no exercises
+      _navigateToWorkoutSummaryDisplay(completed: true);
+    }
   }
 
   @override
@@ -50,7 +73,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         if (_currentIntervalTimeRemaining > 0) {
           _currentIntervalTimeRemaining--;
         } else {
-          _totalSetsCompleted++;
           _audioService.playNextSet();
           _moveToNextSet();
         }
@@ -71,22 +93,47 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     });
   }
 
-  void _moveToNextSet() {
-    if (_currentSetInExercise < widget.workout.exercises[_currentExerciseIndex].sets) {
-      _currentSetInExercise++;
-    } else {
-      if (_currentExerciseIndex < widget.workout.exercises.length - 1) {
-        _currentExerciseIndex++;
-        _currentSetInExercise = 1;
-      } else {
-        // Workout complete
-        _timer.cancel();
-        _audioService.playSessionComplete();
-        _navigateToWorkoutSummaryDisplay(completed: true);
-        return;
+  List<_WorkoutSet> _generateAlternatingWorkoutSequence() {
+    List<_WorkoutSet> sequence = [];
+    int maxSets = 0;
+    for (var exercise in widget.workout.exercises) {
+      if (exercise.sets > maxSets) {
+        maxSets = exercise.sets;
       }
     }
-    _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets; // Use from UserWorkout
+
+    for (int s = 1; s <= maxSets; s++) {
+      for (var exercise in widget.workout.exercises) {
+        if (s <= exercise.sets) {
+          sequence.add(_WorkoutSet(exercise: exercise, setNumber: s));
+        }
+      }
+    }
+    return sequence;
+  }
+
+  List<_WorkoutSet> _generateSequentialWorkoutSequence() {
+    List<_WorkoutSet> sequence = [];
+    for (var exercise in widget.workout.exercises) {
+      for (int s = 1; s <= exercise.sets; s++) {
+        sequence.add(_WorkoutSet(exercise: exercise, setNumber: s));
+      }
+    }
+    return sequence;
+  }
+
+  void _moveToNextSet() {
+    _totalSetsCompleted++; // Increment total sets completed after each set
+
+    if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
+      _currentOverallSetIndex++;
+      _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets;
+    } else {
+      // Workout complete
+      _timer.cancel();
+      _audioService.playSessionComplete();
+      _navigateToWorkoutSummaryDisplay(completed: true);
+    }
   }
 
   void _navigateToWorkoutSummaryDisplay({required bool completed}) {
@@ -114,7 +161,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentExercise = widget.workout.exercises[_currentExerciseIndex]; // Use from UserWorkout
+    // Determine the current exercise and set based on the sequence
+    final _WorkoutSet? currentWorkoutSet = _exercisesToPerform.isNotEmpty
+        ? _exercisesToPerform[_currentOverallSetIndex]
+        : null;
+
     final totalSets = _getTotalSets();
 
     return Scaffold(
@@ -131,12 +182,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             Text(
-              currentExercise.name,
+              currentWorkoutSet?.exercise.name ?? 'N/A',
               style: Theme.of(context).textTheme.headlineLarge,
             ),
             const SizedBox(height: 20),
             Text(
-              'Set: $_currentSetInExercise / ${currentExercise.sets}',
+              'Set: ${currentWorkoutSet?.setNumber ?? 0} / ${currentWorkoutSet?.exercise.sets ?? 0}',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 10),
