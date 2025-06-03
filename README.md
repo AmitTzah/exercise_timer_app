@@ -9,7 +9,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
 *   **Home Screen:**
     *   Displays a list of user-defined workouts.
     *   For each workout, users can:
-        *   **Start Workout:** Initiates the timer for the selected workout.
+        *   **Play Workout:** Initiates the timer for the selected workout.
         *   **Edit Workout:** Navigates to the Define Workout Screen to modify the workout.
         *   **Delete Workout:** Removes the workout after confirmation.
     *   Action: Floating action button to "Define New Workout".

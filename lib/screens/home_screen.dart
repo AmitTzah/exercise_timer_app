@@ -95,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.play_arrow),
+                          icon: const Icon(Icons.play_arrow, size: 40.0),
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
