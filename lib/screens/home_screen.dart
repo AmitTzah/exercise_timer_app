@@ -89,8 +89,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                   child: ListTile(
                     title: Text(workout.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                        'Exercises: ${workout.exercises.length}, Total Time: ${workout.totalWorkoutTime}s'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Total Time: ${workout.totalWorkoutTime}s'),
+                        Text('Interval Time: ${workout.intervalTimeBetweenSets}s'),
+                        ...workout.exercises.map(
+                          (e) => Text(
+                            '${e.name} (${e.sets})',
+                            style: const TextStyle(fontSize: 14.0),
+                          ),
+                        ).toList(),
+                      ],
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
