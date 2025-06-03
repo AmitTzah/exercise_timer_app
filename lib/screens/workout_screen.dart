@@ -75,14 +75,20 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       setState(() {
         if (_currentIntervalTimeRemaining > 0) {
           _currentIntervalTimeRemaining--;
-        } else {
-          _audioService.playNextSet();
-          _moveToNextSet();
+        } else { // Interval just ended, move to next set and prepare its timer
+          bool workoutContinues = _moveToNextSetAndPrepareInterval();
+          if (workoutContinues) {
+            _currentIntervalTimeRemaining--; // Decrement immediately for the new set
+            _audioService.playNextSet(); // Play sound immediately
+          }
         }
-        _totalWorkoutDuration++;
+
         if (_totalTimeRemaining > 0) {
           _totalTimeRemaining--;
         }
+        if (_totalTimeRemaining < 0) _totalTimeRemaining = 0;
+
+        _totalWorkoutDuration++;
       });
     });
   }
@@ -128,7 +134,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     return sequence;
   }
 
-  Future<void> _moveToNextSet() async {
+  bool _moveToNextSetAndPrepareInterval() {
     _totalSetsCompleted++; // Increment total sets completed after each set
 
     if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
@@ -140,11 +146,15 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
+      return true; // Workout continues
     } else {
       // Workout complete
       _timer.cancel();
-      await _audioService.playSessionComplete(); // Await sound completion
+      _currentIntervalTimeRemaining = 0;
+      _totalTimeRemaining = 0;
+      _audioService.playSessionComplete(); // Play sound (non-blocking)
       _navigateToWorkoutSummaryDisplay(completed: true);
+      return false; // Workout finished
     }
   }
 
