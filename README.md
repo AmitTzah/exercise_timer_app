@@ -4,19 +4,28 @@ A personal Android exercise timer app designed to manage alternating sets for di
 
 ## Core Functionality
 
-### I. Workout Timer Module
+### I. Workout Management & Timer Module
 
-*   **Setup Screen:**
-    *   Users can input:
-        *   List of exercises (e.g., "Pullups, Dips, Squats").
-        *   Number of sets desired for each exercise.
-        *   Interval Time (in seconds): Fixed duration for one set and immediate rest/transition.
+*   **Home Screen:**
+    *   Displays a list of user-defined workouts.
+    *   For each workout, users can:
+        *   **Start Workout:** Initiates the timer for the selected workout.
+        *   **Edit Workout:** Navigates to the Define Workout Screen to modify the workout.
+        *   **Delete Workout:** Removes the workout after confirmation.
+    *   Action: Floating action button to "Define New Workout".
+
+*   **Define Workout Screen:**
+    *   Users can create new workouts or edit existing ones.
+    *   Input fields for:
+        *   Workout Name.
+        *   List of exercises (each with name and number of sets).
+        *   Interval Time (in seconds) between sets.
     *   Displays: Calculated total workout duration.
-    *   Action: "Start Workout" button.
-    *   **Persistence:** These settings (exercises, sets, interval time) are saved for future use using `shared_preferences`.
+    *   Action: "Save Workout" button.
+    *   **Persistence:** User-defined workouts (including exercises, sets, and interval time) are saved using `Hive`.
 
 *   **Workout Mode:**
-    *   When "Start" is pressed, a timer begins, cycling through the specified exercises, one set at a time.
+    *   When "Start Workout" is pressed from the Home Screen, a timer begins, cycling through the exercises defined in the selected workout, one set at a time.
     *   The app emits a "next_set.mp3" sound at the end of each interval, signaling the end of the current interval and the immediate start of the next exercise's set.
     *   **Display during workout:**
         *   Current exercise to perform.
@@ -55,8 +64,8 @@ A personal Android exercise timer app designed to manage alternating sets for di
 *   **Automated Audio Cues:** "next_set.mp3" for interval transitions, "session_complete.mp3" for session completion.
 *   **Progress Tracking:** Displays relevant progress information for workouts and goals.
 *   **Data Persistence:**
-    *   Settings: `shared_preferences`.
-    *   Workout Summaries & Goals: Local database (`Hive`).
+    *   User-defined Workouts, Workout Summaries & Goals: Local database (`Hive`).
+    *   (Note: `shared_preferences` is no longer used for workout settings.)
 *   **User Interface:** Clear, simple, and intuitive.
 *   **Target Platform:** Android (version 9 or newer).
 *   **Development Environment:** Flutter with VS Code.

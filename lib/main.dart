@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:exercise_timer_app/services/database_service.dart';
-import 'package:exercise_timer_app/screens/setup_screen.dart'; // Will create this next
+import 'package:exercise_timer_app/screens/home_screen.dart'; // Import the new home screen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +19,7 @@ class ExerciseTimerApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const SetupScreen(), // Start with the setup screen
+      home: const HomeScreen(), // Set HomeScreen as the new entry point
     );
   }
 }

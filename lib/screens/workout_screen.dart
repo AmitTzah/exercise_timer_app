@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:exercise_timer_app/models/exercise.dart';
+import 'package:exercise_timer_app/models/user_workout.dart'; // Import UserWorkout
 import 'package:exercise_timer_app/services/audio_service.dart';
 import 'package:exercise_timer_app/screens/workout_summary_display_screen.dart';
 
 class WorkoutScreen extends StatefulWidget {
-  final List<Exercise> exercises;
-  final int intervalTime;
+  final UserWorkout workout; // Now accepts a UserWorkout object
 
   const WorkoutScreen({
     super.key,
-    required this.exercises,
-    required this.intervalTime,
+    required this.workout,
   });
 
   @override
@@ -34,7 +32,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     super.initState();
     _audioService = AudioService();
     _workoutStartTime = DateTime.now();
-    _currentIntervalTimeRemaining = widget.intervalTime;
+    _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets; // Use from UserWorkout
     _startTimer();
   }
 
@@ -74,10 +72,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _moveToNextSet() {
-    if (_currentSetInExercise < widget.exercises[_currentExerciseIndex].sets) {
+    if (_currentSetInExercise < widget.workout.exercises[_currentExerciseIndex].sets) {
       _currentSetInExercise++;
     } else {
-      if (_currentExerciseIndex < widget.exercises.length - 1) {
+      if (_currentExerciseIndex < widget.workout.exercises.length - 1) {
         _currentExerciseIndex++;
         _currentSetInExercise = 1;
       } else {
@@ -88,7 +86,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         return;
       }
     }
-    _currentIntervalTimeRemaining = widget.intervalTime;
+    _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets; // Use from UserWorkout
   }
 
   void _navigateToWorkoutSummaryDisplay({required bool completed}) {
@@ -96,7 +94,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       MaterialPageRoute(
         builder: (context) => WorkoutSummaryDisplayScreen(
           workoutStartTime: _workoutStartTime!,
-          exercises: widget.exercises,
+          exercises: widget.workout.exercises, // Pass exercises from UserWorkout
           totalDurationInSeconds: _totalWorkoutDuration,
           completed: completed,
         ),
@@ -111,17 +109,17 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   int _getTotalSets() {
-    return widget.exercises.fold(0, (sum, exercise) => sum + exercise.sets);
+    return widget.workout.exercises.fold(0, (sum, exercise) => sum + exercise.sets); // Use from UserWorkout
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentExercise = widget.exercises[_currentExerciseIndex];
+    final currentExercise = widget.workout.exercises[_currentExerciseIndex]; // Use from UserWorkout
     final totalSets = _getTotalSets();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Workout in Progress'),
+        title: Text('Workout: ${widget.workout.name}'), // Display workout name
         automaticallyImplyLeading: false, // No back button during workout
       ),
       body: Center(
