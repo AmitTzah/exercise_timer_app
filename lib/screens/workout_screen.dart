@@ -70,26 +70,48 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async { // Make callback async
       if (_isPaused) return;
-      setState(() {
-        if (_currentIntervalTimeRemaining > 0) {
-          _currentIntervalTimeRemaining--;
-        } else { // Interval just ended, move to next set and prepare its timer
-          bool workoutContinues = _moveToNextSetAndPrepareInterval();
+
+      // Use local variables to avoid issues with async operations and setState
+      int newIntervalTimeRemaining = _currentIntervalTimeRemaining;
+      int newTotalTimeRemaining = _totalTimeRemaining;
+      int newTotalWorkoutDuration = _totalWorkoutDuration;
+
+      if (newIntervalTimeRemaining > 0) {
+        newIntervalTimeRemaining--;
+      } else { // Interval just ended
+        // Await the completion of the set transition and sound playback
+        bool workoutContinues = await _moveToNextSetAndPrepareInterval();
+
+        if (mounted) { // Check if widget is still mounted after await
           if (workoutContinues) {
-            _currentIntervalTimeRemaining--; // Decrement immediately for the new set
+            newIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets; // Reset for next interval
             _audioService.playNextSet(); // Play sound immediately
+            newIntervalTimeRemaining--; // Decrement immediately for the first second of the new set
+          } else {
+            // Workout finished, navigation handled by _moveToNextSetAndPrepareInterval
+            // The timer is already cancelled in _moveToNextSetAndPrepareInterval.
+            return; // Exit timer callback as workout is complete
           }
+        } else {
+          return; // Widget unmounted, exit
         }
+      }
 
-        if (_totalTimeRemaining > 0) {
-          _totalTimeRemaining--;
-        }
-        if (_totalTimeRemaining < 0) _totalTimeRemaining = 0;
+      if (newTotalTimeRemaining > 0) {
+        newTotalTimeRemaining--;
+      }
+      if (newTotalTimeRemaining < 0) newTotalTimeRemaining = 0;
+      newTotalWorkoutDuration++;
 
-        _totalWorkoutDuration++;
-      });
+      if (mounted) { // Ensure widget is still mounted before calling setState
+        setState(() {
+          _currentIntervalTimeRemaining = newIntervalTimeRemaining;
+          _totalTimeRemaining = newTotalTimeRemaining;
+          _totalWorkoutDuration = newTotalWorkoutDuration;
+        });
+      }
     });
   }
 
@@ -134,12 +156,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     return sequence;
   }
 
-  bool _moveToNextSetAndPrepareInterval() {
+  Future<bool> _moveToNextSetAndPrepareInterval() async {
     _totalSetsCompleted++; // Increment total sets completed after each set
 
     if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
       _currentOverallSetIndex++;
-      _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets;
+      // _currentIntervalTimeRemaining will be reset by the caller (_startTimer)
       // Scroll to the current item
       _scrollController.animateTo(
         _currentOverallSetIndex * 60.0, // Assuming each item has a height of 60.0
@@ -149,11 +171,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       return true; // Workout continues
     } else {
       // Workout complete
-      _timer.cancel();
+      _timer.cancel(); // Ensure timer is cancelled before awaiting sound
       _currentIntervalTimeRemaining = 0;
       _totalTimeRemaining = 0;
-      _audioService.playSessionComplete(); // Play sound (non-blocking)
-      _navigateToWorkoutSummaryDisplay(completed: true);
+      await _audioService.playSessionComplete(); // Await sound completion
+      if (mounted) { // Check if widget is still mounted before navigating
+        _navigateToWorkoutSummaryDisplay(completed: true);
+      }
       return false; // Workout finished
     }
   }
