@@ -83,7 +83,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final workoutSummary = WorkoutSummary(
       date: _workoutStartTime!,
       exercises: widget.exercises,
-      totalDuration: Duration(seconds: _totalWorkoutDuration),
+      totalDurationInSeconds: _totalWorkoutDuration,
     );
     Hive.box<WorkoutSummary>('workoutSummaries').add(workoutSummary);
   }

@@ -12,11 +12,14 @@ class WorkoutSummary extends HiveObject {
   List<Exercise> exercises;
 
   @HiveField(2)
-  Duration totalDuration;
+  int totalDurationInSeconds;
 
   WorkoutSummary({
     required this.date,
     required this.exercises,
-    required this.totalDuration,
+    required this.totalDurationInSeconds,
   });
+
+  // Helper to get Duration object
+  Duration get totalDuration => Duration(seconds: totalDurationInSeconds);
 }

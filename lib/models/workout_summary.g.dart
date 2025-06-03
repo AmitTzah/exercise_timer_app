@@ -19,7 +19,7 @@ class WorkoutSummaryAdapter extends TypeAdapter<WorkoutSummary> {
     return WorkoutSummary(
       date: fields[0] as DateTime,
       exercises: (fields[1] as List).cast<Exercise>(),
-      totalDuration: fields[2] as Duration,
+      totalDurationInSeconds: fields[2] as int,
     );
   }
 
@@ -32,7 +32,7 @@ class WorkoutSummaryAdapter extends TypeAdapter<WorkoutSummary> {
       ..writeByte(1)
       ..write(obj.exercises)
       ..writeByte(2)
-      ..write(obj.totalDuration);
+      ..write(obj.totalDurationInSeconds);
   }
 
   @override
