@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             '${e.name} (${e.sets})',
                             style: const TextStyle(fontSize: 14.0),
                           ),
-                        ).toList(),
+                        ),
                       ],
                     ),
                     trailing: Row(

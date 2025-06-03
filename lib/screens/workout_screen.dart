@@ -34,6 +34,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   // Variables for workout sequence
   late List<_WorkoutSet> _exercisesToPerform;
   int _currentOverallSetIndex = 0; // Index in _exercisesToPerform list
+  late int _totalExpectedWorkoutDuration;
+  late int _totalTimeRemaining;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -46,6 +49,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     } else {
       _exercisesToPerform = _generateSequentialWorkoutSequence();
     }
+
+    _totalExpectedWorkoutDuration = _exercisesToPerform.length * widget.workout.intervalTimeBetweenSets;
+    _totalTimeRemaining = _totalExpectedWorkoutDuration;
 
     if (_exercisesToPerform.isNotEmpty) {
       _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets;
@@ -74,6 +80,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           _moveToNextSet();
         }
         _totalWorkoutDuration++;
+        if (_totalTimeRemaining > 0) {
+          _totalTimeRemaining--;
+        }
       });
     });
   }
@@ -125,6 +134,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
       _currentOverallSetIndex++;
       _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets;
+      // Scroll to the current item
+      _scrollController.animateTo(
+        _currentOverallSetIndex * 60.0, // Assuming each item has a height of 60.0
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     } else {
       // Workout complete
       _timer.cancel();
@@ -162,11 +177,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine the current exercise and set based on the sequence
-    final _WorkoutSet? currentWorkoutSet = _exercisesToPerform.isNotEmpty
-        ? _exercisesToPerform[_currentOverallSetIndex]
-        : null;
-
     final totalSets = _getTotalSets();
 
     return Scaffold(
@@ -174,103 +184,152 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         title: Text('Workout: ${widget.workout.name}'), // Display workout name
         automaticallyImplyLeading: false, // No back button during workout
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Current Exercise:',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            Text(
-              currentWorkoutSet?.exercise.name ?? 'N/A',
-              style: Theme.of(context).textTheme.headlineLarge,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Set: ${currentWorkoutSet?.setNumber ?? 0} / ${currentWorkoutSet?.exercise.sets ?? 0}',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Total Set: $_totalSetsCompleted / $totalSets',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 40),
-            Text(
-              _formatDuration(_currentIntervalTimeRemaining),
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.blueAccent,
-              ),
-            ),
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    if (_isPaused) {
-                      _resumeWorkout();
-                    } else {
-                      _pauseWorkout();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isPaused ? Colors.green : Colors.orange,
-                    minimumSize: const Size(150, 50),
-                  ),
-                  child: Text(
-                    _isPaused ? 'Resume Workout' : 'Pause Workout',
-                    style: const TextStyle(fontSize: 18, color: Colors.white),
-                  ),
+      body: SafeArea( // Wrapped the entire content in SafeArea
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                child: Column(
+                  children: [
+                    Text(
+                      'Total Time Remaining:',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    Text(
+                      _formatDuration(_totalTimeRemaining),
+                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepOrange,
+                      ),
+                    ),
+                  ],
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    _timer.cancel();
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Finish Workout?'),
-                          content: const Text(
-                            'Are you sure you want to finish the workout?',
+              ),
+              Flexible(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  itemCount: _exercisesToPerform.length,
+                  itemBuilder: (context, index) {
+                    final workoutSet = _exercisesToPerform[index];
+                    final isCurrent = index == _currentOverallSetIndex;
+                    return Card(
+                      color: isCurrent ? Colors.blue.shade100 : null,
+                      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                      child: ListTile(
+                        leading: isCurrent
+                            ? const Icon(Icons.arrow_right, color: Colors.blueAccent, size: 30)
+                            : null,
+                        title: Text(
+                          workoutSet.exercise.name,
+                          style: TextStyle(
+                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                            color: isCurrent ? Colors.blueAccent : Colors.black,
+                            fontSize: 20,
                           ),
-                          actions: <Widget>[
-                            TextButton(
-                              child: const Text('Cancel'),
-                              onPressed: () {
-                                Navigator.of(context).pop(); // Close dialog
-                                _startTimer(); // Resume timer if cancelled
-                              },
-                            ),
-                            TextButton(
-                              child: const Text('Finish'),
-                              onPressed: () {
-                                Navigator.of(context).pop(); // Close dialog
-                                _navigateToWorkoutSummaryDisplay(
-                                  completed: false,
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      },
+                        ),
+                        subtitle: Text(
+                          'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}',
+                          style: TextStyle(
+                            color: isCurrent ? Colors.blueAccent : Colors.grey[600],
+                            fontSize: 16,
+                          ),
+                        ),
+                        trailing: isCurrent
+                            ? Text(
+                                _formatDuration(_currentIntervalTimeRemaining),
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueAccent,
+                                  fontSize: 22,
+                                ),
+                              )
+                            : null,
+                      ),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    minimumSize: const Size(150, 50),
-                  ),
-                  child: const Text(
-                    'Finish Workout',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                child: Column(
+                  children: [
+                    Text(
+                      'Total Sets: $_totalSetsCompleted / $totalSets',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            if (_isPaused) {
+                              _resumeWorkout();
+                            } else {
+                              _pauseWorkout();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isPaused ? Colors.green : Colors.orange,
+                            minimumSize: const Size(150, 50),
+                          ),
+                          child: Text(
+                            _isPaused ? 'Resume Workout' : 'Pause Workout',
+                            style: const TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            _timer.cancel();
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: const Text('Finish Workout?'),
+                                  content: const Text(
+                                    'Are you sure you want to finish the workout?',
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      child: const Text('Cancel'),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        _startTimer();
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: const Text('Finish'),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        _navigateToWorkoutSummaryDisplay(
+                                          completed: false,
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            minimumSize: const Size(150, 50),
+                          ),
+                          child: const Text(
+                            'Finish Workout',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
