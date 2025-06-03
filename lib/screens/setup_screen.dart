@@ -15,8 +15,10 @@ class _SetupScreenState extends State<SetupScreen> {
   final SettingsService _settingsService = SettingsService();
   List<Exercise> _exercises = [];
   int _intervalTime = 60; // Default to 60 seconds
-  final TextEditingController _newExerciseNameController = TextEditingController();
-  final TextEditingController _newExerciseSetsController = TextEditingController();
+  final TextEditingController _newExerciseNameController =
+      TextEditingController();
+  final TextEditingController _newExerciseSetsController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -56,7 +58,11 @@ class _SetupScreenState extends State<SetupScreen> {
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid exercise name and number of sets.')),
+        const SnackBar(
+          content: Text(
+            'Please enter a valid exercise name and number of sets.',
+          ),
+        ),
       );
     }
   }
@@ -84,10 +90,8 @@ class _SetupScreenState extends State<SetupScreen> {
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => WorkoutScreen(
-          exercises: _exercises,
-          intervalTime: _intervalTime,
-        ),
+        builder: (context) =>
+            WorkoutScreen(exercises: _exercises, intervalTime: _intervalTime),
       ),
     );
   }
@@ -111,32 +115,34 @@ class _SetupScreenState extends State<SetupScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _newExerciseNameController,
-              decoration: const InputDecoration(
-                labelText: 'Exercise Name',
-                hintText: 'e.g., Pullups',
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _newExerciseNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Exercise Name',
+                  hintText: 'e.g., Pullups',
+                ),
               ),
-            ),
-            TextField(
-              controller: _newExerciseSetsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Number of Sets',
-                hintText: 'e.g., 3',
+              TextField(
+                controller: _newExerciseSetsController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Number of Sets',
+                  hintText: 'e.g., 3',
+                ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: _addExercise,
-              child: const Text('Add Exercise'),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
+              ElevatedButton(
+                onPressed: _addExercise,
+                child: const Text('Add Exercise'),
+              ),
+              const SizedBox(height: 20),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: _exercises.length,
                 itemBuilder: (context, index) {
                   final exercise = _exercises[index];
@@ -144,7 +150,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 4.0),
                     child: ListTile(
                       title: Text(exercise.name),
-                      subtitle: Text('Sets: ${exercise.sets}'), // Keep braces for expression
+                      subtitle: Text('Sets: ${exercise.sets}'),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),
                         onPressed: () => _removeExercise(index),
@@ -153,38 +159,41 @@ class _SetupScreenState extends State<SetupScreen> {
                   );
                 },
               ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Interval Time (seconds)',
-                hintText: 'e.g., 60',
+              const SizedBox(height: 20),
+              TextField(
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Interval Time (seconds)',
+                  hintText: 'e.g., 60',
+                ),
+                controller: TextEditingController(text: '$_intervalTime'),
+                onChanged: (value) {
+                  setState(() {
+                    _intervalTime = int.tryParse(value) ?? 60;
+                  });
+                },
               ),
-              controller: TextEditingController(text: '$_intervalTime'), // Remove braces for simple variable
-              onChanged: (value) {
-                setState(() {
-                  _intervalTime = int.tryParse(value) ?? 60;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Total Workout Duration: ${_calculateTotalDuration()} seconds', // Keep braces for method call
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _startWorkout,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50), // Make button wide
+              const SizedBox(height: 20),
+              Text(
+                'Total Workout Duration: ${_calculateTotalDuration()} seconds',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              child: const Text(
-                'Start Workout',
-                style: TextStyle(fontSize: 20),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _startWorkout,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50), // Make button wide
+                ),
+                child: const Text(
+                  'Start Workout',
+                  style: TextStyle(fontSize: 20),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
