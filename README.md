@@ -19,7 +19,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   Input fields for:
         *   Workout Name.
         *   List of exercises (each with name and number of sets).
-        *   Interval Time (in seconds) between sets.
+        *   Set Interval Time (seconds) between sets.
         *   **Alternate Sets Checkbox:** Toggles between sequential and alternating set progression.
     *   Displays: Calculated total workout duration.
     *   Action: "Save Workout" button.

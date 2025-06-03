@@ -200,7 +200,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                 controller: _intervalTimeController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Interval Time (seconds)',
+                  labelText: 'Set Interval Time (seconds)',
                   hintText: 'e.g., 60',
                 ),
                 validator: (value) {
