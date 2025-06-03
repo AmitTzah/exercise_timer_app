@@ -8,10 +8,7 @@ import 'package:exercise_timer_app/screens/workout_summary_display_screen.dart';
 class WorkoutScreen extends StatefulWidget {
   final UserWorkout workout; // Now accepts a UserWorkout object
 
-  const WorkoutScreen({
-    super.key,
-    required this.workout,
-  });
+  const WorkoutScreen({super.key, required this.workout});
 
   @override
   State<WorkoutScreen> createState() => _WorkoutScreenState();
@@ -122,7 +119,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     return sequence;
   }
 
-  void _moveToNextSet() {
+  Future<void> _moveToNextSet() async {
     _totalSetsCompleted++; // Increment total sets completed after each set
 
     if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
@@ -131,7 +128,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     } else {
       // Workout complete
       _timer.cancel();
-      _audioService.playSessionComplete();
+      await _audioService.playSessionComplete(); // Await sound completion
       _navigateToWorkoutSummaryDisplay(completed: true);
     }
   }
@@ -141,7 +138,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       MaterialPageRoute(
         builder: (context) => WorkoutSummaryDisplayScreen(
           workoutStartTime: _workoutStartTime!,
-          exercises: widget.workout.exercises, // Pass exercises from UserWorkout
+          exercises:
+              widget.workout.exercises, // Pass exercises from UserWorkout
           totalDurationInSeconds: _totalWorkoutDuration,
           completed: completed,
         ),
@@ -156,7 +154,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   int _getTotalSets() {
-    return widget.workout.exercises.fold(0, (sum, exercise) => sum + exercise.sets); // Use from UserWorkout
+    return widget.workout.exercises.fold(
+      0,
+      (sum, exercise) => sum + exercise.sets,
+    ); // Use from UserWorkout
   }
 
   @override
@@ -199,9 +200,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             Text(
               _formatDuration(_currentIntervalTimeRemaining),
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: Colors.blueAccent,
+              ),
             ),
             const SizedBox(height: 40),
             Row(
@@ -233,7 +234,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       builder: (BuildContext context) {
                         return AlertDialog(
                           title: const Text('Finish Workout?'),
-                          content: const Text('Are you sure you want to finish the workout?'),
+                          content: const Text(
+                            'Are you sure you want to finish the workout?',
+                          ),
                           actions: <Widget>[
                             TextButton(
                               child: const Text('Cancel'),
@@ -246,7 +249,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                               child: const Text('Finish'),
                               onPressed: () {
                                 Navigator.of(context).pop(); // Close dialog
-                                _navigateToWorkoutSummaryDisplay(completed: false);
+                                _navigateToWorkoutSummaryDisplay(
+                                  completed: false,
+                                );
                               },
                             ),
                           ],
