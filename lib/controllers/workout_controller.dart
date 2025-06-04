@@ -14,6 +14,7 @@ class WorkoutController extends ChangeNotifier {
 
   int _totalSetsCompleted = 0;
   bool _isPaused = false;
+  bool _workoutCompletedAudioPlayed = false;
 
   late List<WorkoutSet> _exercisesToPerform;
   int _currentOverallSetIndex = 0;
@@ -79,6 +80,7 @@ class WorkoutController extends ChangeNotifier {
        _selectedLevelOrMode = selectedLevelOrMode {
     _workoutStartTime = DateTime.now();
     _currentIntervalDuration = _workout.intervalTimeBetweenSets; // Initialize interval duration
+    _workoutCompletedAudioPlayed = false; // Ensure it's reset for each new workout
 
     _applyLevelModifier(); // Adjust sets based on level
 
@@ -97,6 +99,7 @@ class WorkoutController extends ChangeNotifier {
 
     if (_exercisesToPerform.isNotEmpty) {
       _overallWorkoutStopwatch.start();
+      debugPrint('Stopwatch started. Elapsed: ${_overallWorkoutStopwatch.elapsedMilliseconds}ms');
       _intervalStopwatch.start();
       _startTimer();
     } else {
@@ -177,7 +180,8 @@ class WorkoutController extends ChangeNotifier {
           _timer?.cancel();
           _overallWorkoutStopwatch.stop();
           _intervalStopwatch.stop();
-          notifyListeners(); // Notify one last time to show 00:00.0
+          debugPrint('Workout finished naturally. Stopwatch stopped. Elapsed: ${_overallWorkoutStopwatch.elapsedMilliseconds}ms');
+          // Removed notifyListeners() here as navigation will dispose the controller
           _finishWorkoutInternal();
           return; // Exit early, no more operations on disposed controller
         }
@@ -209,6 +213,7 @@ class WorkoutController extends ChangeNotifier {
     _isPaused = true; // Ensure UI reflects paused state
     _overallWorkoutStopwatch.stop();
     _intervalStopwatch.stop();
+    debugPrint('Workout manually finished. Stopwatch stopped. Elapsed: ${_overallWorkoutStopwatch.elapsedMilliseconds}ms');
     notifyListeners();
     _finishWorkoutInternal();
   }
@@ -243,21 +248,24 @@ class WorkoutController extends ChangeNotifier {
   }
 
   Future<bool> _moveToNextSetAndPrepareInterval() async {
+    _totalSetsCompleted++; // Increment for the set that just finished
+
     if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
       _currentOverallSetIndex++;
-      _totalSetsCompleted++; // Increment total sets completed when moving to next set
       notifyListeners(); // Notify to update current exercise display
       return true;
     } else {
       if (_selectedLevelOrMode == "survival") {
         // Loop back to the beginning for survival mode
         _currentOverallSetIndex = 0;
-        _totalSetsCompleted++; // Increment for survival mode as well
         notifyListeners();
         return true;
       } else {
         // End workout for non-survival modes
-        await _audioService.playSessionComplete();
+        if (!_workoutCompletedAudioPlayed) {
+          _workoutCompletedAudioPlayed = true; // Set flag immediately
+          await _audioService.playSessionComplete(); // Then play audio
+        }
         return false;
       }
     }
@@ -285,9 +293,10 @@ class WorkoutController extends ChangeNotifier {
       }
     } else {
       wasStoppedPrematurely = (_totalSetsCompleted < _exercisesToPerform.length);
-      finalPerformedSets = _exercisesToPerform.sublist(0, _totalSetsCompleted);
+      finalPerformedSets = _exercisesToPerform.sublist(0, wasStoppedPrematurely ? _totalSetsCompleted : _exercisesToPerform.length);
     }
 
+    debugPrint('Creating WorkoutSummary. totalWorkoutDuration (getter): $totalWorkoutDuration seconds');
     final summary = WorkoutSummary(
       date: _workoutStartTime!,
       performedSets: finalPerformedSets,

@@ -69,6 +69,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _navigateToWorkoutSummaryDisplay({required WorkoutSummary summary}) {
+    if (!mounted) return; // Check if the widget is still mounted
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => WorkoutSummaryDisplayScreen(
