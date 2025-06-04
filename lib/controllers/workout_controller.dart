@@ -12,38 +12,57 @@ class WorkoutController extends ChangeNotifier {
   Timer? _timer;
   DateTime? _workoutStartTime;
 
-  int _currentIntervalTimeRemaining = 0;
   int _totalSetsCompleted = 0;
-  int _totalWorkoutDuration = 0; // in seconds
   bool _isPaused = false;
 
   late List<WorkoutSet> _exercisesToPerform;
   int _currentOverallSetIndex = 0;
-  late int _totalExpectedWorkoutDuration;
-  late int _totalTimeRemaining;
+  late double _totalExpectedWorkoutDuration;
+
+  // New timing variables
+  final Stopwatch _overallWorkoutStopwatch = Stopwatch();
+  final Stopwatch _intervalStopwatch = Stopwatch();
+  late int _currentIntervalDuration; // In seconds, from workout.intervalTimeBetweenSets
 
   // Getters for UI to consume
   UserWorkout get workout => _workout;
-  int get currentIntervalTimeRemaining => _currentIntervalTimeRemaining;
   int get totalSetsCompleted => _totalSetsCompleted;
-  int get totalWorkoutDuration => _totalWorkoutDuration;
   bool get isPaused => _isPaused;
   List<WorkoutSet> get exercisesToPerform => _exercisesToPerform;
   int get currentOverallSetIndex => _currentOverallSetIndex;
-  int get totalExpectedWorkoutDuration => _totalExpectedWorkoutDuration;
-  int get totalTimeRemaining => _totalTimeRemaining;
+  double get totalExpectedWorkoutDuration => _totalExpectedWorkoutDuration;
+
+  // Calculated getters for time
+  double get currentIntervalTimeRemaining {
+    if (_intervalStopwatch.isRunning) {
+      final double remaining = _currentIntervalDuration - (_intervalStopwatch.elapsedMilliseconds / 1000.0);
+      return remaining > 0 ? remaining : 0.0;
+    }
+    return 0.0; // Or the last known value if paused/stopped
+  }
+
+  double get totalTimeRemaining {
+    if (_selectedLevelOrMode == "survival") return 0.0; // Not applicable for survival
+    if (_overallWorkoutStopwatch.isRunning) {
+      final double remaining = _totalExpectedWorkoutDuration - (_overallWorkoutStopwatch.elapsedMilliseconds / 1000.0);
+      return remaining > 0 ? remaining : 0.0;
+    }
+    return 0.0; // Or the last known value if paused/stopped
+  }
+
+  double get totalWorkoutDuration => _overallWorkoutStopwatch.elapsedMilliseconds / 1000.0;
+  DateTime? get workoutStartTime => _workoutStartTime; // Expose workout start time
+  double get elapsedSurvivalTime => _overallWorkoutStopwatch.elapsedMilliseconds / 1000.0;
+
   WorkoutSet? get currentWorkoutSet =>
       _exercisesToPerform.isNotEmpty &&
           _currentOverallSetIndex < _exercisesToPerform.length
       ? _exercisesToPerform[_currentOverallSetIndex]
       : null;
   int get totalSets => _currentLoopExercises.fold(0, (sum, exercise) => sum + exercise.sets);
-  DateTime? get workoutStartTime => _workoutStartTime; // Expose workout start time
-  int get elapsedSurvivalTime => _elapsedSurvivalTime;
 
   final bool _isAlternateMode;
   final dynamic _selectedLevelOrMode; // int for level, String for "survival"
-  int _elapsedSurvivalTime = 0;
   late List<Exercise> _currentLoopExercises;
 
 // Callback for when workout finishes
@@ -59,6 +78,7 @@ class WorkoutController extends ChangeNotifier {
        _isAlternateMode = isAlternateMode,
        _selectedLevelOrMode = selectedLevelOrMode {
     _workoutStartTime = DateTime.now();
+    _currentIntervalDuration = _workout.intervalTimeBetweenSets; // Initialize interval duration
 
     _applyLevelModifier(); // Adjust sets based on level
 
@@ -69,16 +89,15 @@ class WorkoutController extends ChangeNotifier {
     }
 
     if (_selectedLevelOrMode == "survival") {
-      _totalExpectedWorkoutDuration = 0; // Not applicable for survival mode
-      _totalTimeRemaining = 0; // Not applicable for survival mode
+      _totalExpectedWorkoutDuration = 0.0; // Not applicable for survival mode
     } else {
       _totalExpectedWorkoutDuration =
-          _exercisesToPerform.length * _workout.intervalTimeBetweenSets;
-      _totalTimeRemaining = _totalExpectedWorkoutDuration;
+          (_exercisesToPerform.length * _workout.intervalTimeBetweenSets).toDouble();
     }
 
     if (_exercisesToPerform.isNotEmpty) {
-      _currentIntervalTimeRemaining = _workout.intervalTimeBetweenSets;
+      _overallWorkoutStopwatch.start();
+      _intervalStopwatch.start();
       _startTimer();
     } else {
       _finishWorkoutInternal(); // Immediately finish if no exercises
@@ -142,20 +161,23 @@ class WorkoutController extends ChangeNotifier {
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) async {
       if (_isPaused) return;
 
-      if (_currentIntervalTimeRemaining > 0) {
-        _currentIntervalTimeRemaining--;
-      } else {
+      // Check if current interval is complete
+      if (_intervalStopwatch.elapsedMilliseconds >= _currentIntervalDuration * 1000) {
         bool workoutContinues = await _moveToNextSetAndPrepareInterval();
         if (workoutContinues) {
-          _currentIntervalTimeRemaining = _workout.intervalTimeBetweenSets;
+          _intervalStopwatch.reset();
+          _intervalStopwatch.start();
           // Play "Next Set" sound followed by the next exercise name
           await _audioService.playExerciseAnnouncement(_exercisesToPerform[_currentOverallSetIndex].exercise.name);
-          // Removed: _currentIntervalTimeRemaining--; // This caused the clock to speed up
         } else {
+          // Workout finished naturally
           _timer?.cancel();
+          _overallWorkoutStopwatch.stop();
+          _intervalStopwatch.stop();
+          notifyListeners(); // Notify one last time to show 00:00.0
           _finishWorkoutInternal();
           return; // Exit early, no more operations on disposed controller
         }
@@ -163,15 +185,6 @@ class WorkoutController extends ChangeNotifier {
 
       // Only update and notify if the workout is still active (timer not cancelled by finishInternal)
       if (_timer != null && _timer!.isActive) {
-        if (_selectedLevelOrMode == "survival") {
-          _elapsedSurvivalTime++; // Count up for survival mode
-        } else {
-          if (_totalTimeRemaining > 0) {
-            _totalTimeRemaining--;
-          }
-          if (_totalTimeRemaining < 0) _totalTimeRemaining = 0;
-        }
-        _totalWorkoutDuration++; // This still tracks total elapsed time for summary
         notifyListeners();
       }
     });
@@ -179,19 +192,23 @@ class WorkoutController extends ChangeNotifier {
 
   void pauseWorkout() {
     _isPaused = true;
+    _overallWorkoutStopwatch.stop();
+    _intervalStopwatch.stop();
     notifyListeners();
   }
 
   void resumeWorkout() {
     _isPaused = false;
+    _overallWorkoutStopwatch.start();
+    _intervalStopwatch.start();
     notifyListeners();
   }
 
   void finishWorkout() {
     _timer?.cancel();
     _isPaused = true; // Ensure UI reflects paused state
-    _currentIntervalTimeRemaining = 0;
-    _totalTimeRemaining = 0;
+    _overallWorkoutStopwatch.stop();
+    _intervalStopwatch.stop();
     notifyListeners();
     _finishWorkoutInternal();
   }
@@ -226,25 +243,21 @@ class WorkoutController extends ChangeNotifier {
   }
 
   Future<bool> _moveToNextSetAndPrepareInterval() async {
-    _totalSetsCompleted++;
-
     if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
       _currentOverallSetIndex++;
+      _totalSetsCompleted++; // Increment total sets completed when moving to next set
       notifyListeners(); // Notify to update current exercise display
       return true;
     } else {
       if (_selectedLevelOrMode == "survival") {
         // Loop back to the beginning for survival mode
         _currentOverallSetIndex = 0;
+        _totalSetsCompleted++; // Increment for survival mode as well
         notifyListeners();
         return true;
       } else {
         // End workout for non-survival modes
-        _timer?.cancel();
-        _currentIntervalTimeRemaining = 0;
-        _totalTimeRemaining = 0;
         await _audioService.playSessionComplete();
-        notifyListeners();
         return false;
       }
     }
@@ -278,7 +291,7 @@ class WorkoutController extends ChangeNotifier {
     final summary = WorkoutSummary(
       date: _workoutStartTime!,
       performedSets: finalPerformedSets,
-      totalDurationInSeconds: _totalWorkoutDuration,
+      totalDurationInSeconds: totalWorkoutDuration.round(), // Use getter for total duration
       workoutName: _workout.name,
       workoutLevel: _selectedLevelOrMode is int ? _selectedLevelOrMode : 1, // Default to 1 if survival
       isSurvivalMode: _selectedLevelOrMode == "survival",
@@ -316,6 +329,8 @@ class WorkoutController extends ChangeNotifier {
   @override
   void dispose() {
     _timer?.cancel();
+    _overallWorkoutStopwatch.stop();
+    _intervalStopwatch.stop();
     // _audioService.dispose(); // AudioService is a singleton, disposed by Provider at app shutdown
     super.dispose();
   }

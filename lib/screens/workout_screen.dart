@@ -78,10 +78,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  String _formatDuration(int seconds) {
-    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
-    final remainingSeconds = (seconds % 60).toString().padLeft(2, '0');
-    return '$minutes:$remainingSeconds';
+  String _formatDuration(double totalSeconds) {
+    final int minutes = (totalSeconds ~/ 60).toInt();
+    final int seconds = (totalSeconds % 60).toInt();
+    final int milliseconds = ((totalSeconds - totalSeconds.floor()) * 1000).toInt();
+
+    final String minutesStr = minutes.toString().padLeft(2, '0');
+    final String secondsStr = seconds.toString().padLeft(2, '0');
+    final String millisecondsStr = (milliseconds ~/ 100).toString(); // Displaying tenths of a second
+
+    return '$minutesStr:$secondsStr.$millisecondsStr';
   }
 
   @override
