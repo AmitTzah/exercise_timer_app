@@ -153,7 +153,7 @@ class WorkoutController extends ChangeNotifier {
           _currentIntervalTimeRemaining = _workout.intervalTimeBetweenSets;
           // Play "Next Set" sound followed by the next exercise name
           await _audioService.playExerciseAnnouncement(_exercisesToPerform[_currentOverallSetIndex].exercise.name);
-          _currentIntervalTimeRemaining--; // Decrement immediately for the first second of the new set
+          // Removed: _currentIntervalTimeRemaining--; // This caused the clock to speed up
         } else {
           _timer?.cancel();
           _finishWorkoutInternal();

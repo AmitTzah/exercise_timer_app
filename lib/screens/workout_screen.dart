@@ -25,6 +25,7 @@ class WorkoutScreen extends StatefulWidget {
 class _WorkoutScreenState extends State<WorkoutScreen> {
   late WorkoutController _workoutController;
   final ScrollController _scrollController = ScrollController();
+  int _lastOverallSetIndex = -1; // Track the last index to prevent redundant scrolls
 
   @override
   void initState() {
@@ -55,7 +56,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
   void _onControllerChanged() {
     setState(() {
-      if (_workoutController.currentOverallSetIndex * 60.0 != _scrollController.offset) {
+      // Only animate if the current set index has actually changed
+      if (_workoutController.currentOverallSetIndex != _lastOverallSetIndex) {
+        _lastOverallSetIndex = _workoutController.currentOverallSetIndex;
         _scrollController.animateTo(
           _workoutController.currentOverallSetIndex * 60.0,
           duration: const Duration(milliseconds: 300),
