@@ -3,6 +3,7 @@ import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/models/workout_summary.dart';
 import 'package:exercise_timer_app/models/goal.dart';
 import 'package:exercise_timer_app/models/user_workout.dart';
+import 'package:exercise_timer_app/models/workout_set.dart'; // Import WorkoutSet
 
 class DatabaseService {
   static bool _isInitialized = false;
@@ -18,6 +19,7 @@ class DatabaseService {
     if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(WorkoutSummaryAdapter());
     if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(UserWorkoutAdapter());
     if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(GoalAdapter());
+    if (!Hive.isAdapterRegistered(4)) Hive.registerAdapter(WorkoutSetAdapter()); // Register WorkoutSetAdapter
 
     _isInitialized = true;
   }

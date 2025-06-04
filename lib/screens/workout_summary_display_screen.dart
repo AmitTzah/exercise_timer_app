@@ -1,28 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import provider
-import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/models/workout_summary.dart';
 import 'package:exercise_timer_app/repositories/workout_summary_repository.dart'; // Use the new repository
 import 'package:intl/intl.dart'; // For date formatting
 
 class WorkoutSummaryDisplayScreen extends StatelessWidget {
-  final DateTime workoutStartTime;
-  final List<Exercise> exercises;
-  final int totalDurationInSeconds;
-  final bool completed;
+  final WorkoutSummary summary;
 
   const WorkoutSummaryDisplayScreen({
     super.key,
-    required this.workoutStartTime,
-    required this.exercises,
-    required this.totalDurationInSeconds,
-    required this.completed,
+    required this.summary,
   });
 
   String _formatDuration(int seconds) {
     final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
     final remainingSeconds = (seconds % 60).toString().padLeft(2, '0');
     return '$minutes:$remainingSeconds';
+  }
+
+  Widget _buildSummaryRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 150, // Fixed width for labels
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -38,19 +55,18 @@ class WorkoutSummaryDisplayScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              completed ? 'Workout Complete!' : 'Workout Ended!',
+              summary.wasStoppedPrematurely
+                  ? 'Workout Stopped Early!'
+                  : (summary.isSurvivalMode ? 'Survival Workout Ended!' : 'Workout Complete!'),
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 20),
-            Text(
-              'Date: ${DateFormat('yyyy-MM-dd HH:mm').format(workoutStartTime)}',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Total Duration: ${_formatDuration(totalDurationInSeconds)}',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            _buildSummaryRow(context, 'Workout Name:', summary.workoutName),
+            _buildSummaryRow(context, 'Date:', DateFormat('yyyy-MM-dd HH:mm').format(summary.date)),
+            _buildSummaryRow(context, 'Total Duration:', _formatDuration(summary.totalDurationInSeconds)),
+            _buildSummaryRow(context, 'Workout Level:', summary.workoutLevel.toString()),
+            _buildSummaryRow(context, 'Alternating Sets:', summary.isAlternatingSets ? 'Yes' : 'No'),
+            _buildSummaryRow(context, 'Interval Time:', '${summary.intervalTime} seconds'),
             const SizedBox(height: 20),
             Text(
               'Exercises Performed:',
@@ -58,13 +74,13 @@ class WorkoutSummaryDisplayScreen extends StatelessWidget {
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: exercises.length,
+                itemCount: summary.performedSets.length, // Use performedSets
                 itemBuilder: (context, index) {
-                  final exercise = exercises[index];
+                  final workoutSet = summary.performedSets[index]; // Get WorkoutSet
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: Text(
-                      '- ${exercise.name} (${exercise.sets} sets)',
+                      '- ${workoutSet.exercise.name} (Set ${workoutSet.setNumber})${workoutSet.exercise.reps != null ? ', ${workoutSet.exercise.reps} reps' : ''}',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   );
@@ -92,13 +108,8 @@ class WorkoutSummaryDisplayScreen extends StatelessWidget {
                   ),
                   ElevatedButton(
                     onPressed: () async {
-                      final workoutSummary = WorkoutSummary(
-                        date: workoutStartTime,
-                        exercises: exercises,
-                        totalDurationInSeconds: totalDurationInSeconds,
-                      );
                       final workoutSummaryRepository = Provider.of<WorkoutSummaryRepository>(context, listen: false);
-                      await workoutSummaryRepository.addWorkoutSummary(workoutSummary);
+                      await workoutSummaryRepository.addWorkoutSummary(summary); // Use the passed summary
                       if (!context.mounted) return;
                       Navigator.of(context).popUntil((route) => route.isFirst); // Go back to setup screen
                     },

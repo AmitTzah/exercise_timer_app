@@ -257,8 +257,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                     child: ListTile(
                       title: Text(exercise.name),
                       subtitle: Text(
-                        'Sets: ${exercise.sets}' +
-                            (exercise.reps != null ? ' | Reps: ${exercise.reps}' : ''), // Display reps if available
+                        'Sets: ${exercise.sets}${exercise.reps != null ? ' | Reps: ${exercise.reps}' : ''}', // Display reps if available
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),

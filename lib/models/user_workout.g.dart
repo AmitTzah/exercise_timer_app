@@ -24,13 +24,14 @@ class UserWorkoutAdapter extends TypeAdapter<UserWorkout> {
       totalWorkoutTime: fields[4] as int,
       selectedAlternateSets: fields[5] as bool?,
       selectedLevel: fields[6] as int?,
+      selectedSurvivalMode: fields[7] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserWorkout obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class UserWorkoutAdapter extends TypeAdapter<UserWorkout> {
       ..writeByte(5)
       ..write(obj.selectedAlternateSets)
       ..writeByte(6)
-      ..write(obj.selectedLevel);
+      ..write(obj.selectedLevel)
+      ..writeByte(7)
+      ..write(obj.selectedSurvivalMode);
   }
 
   @override

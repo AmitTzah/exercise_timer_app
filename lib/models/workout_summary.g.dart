@@ -18,21 +18,39 @@ class WorkoutSummaryAdapter extends TypeAdapter<WorkoutSummary> {
     };
     return WorkoutSummary(
       date: fields[0] as DateTime,
-      exercises: (fields[1] as List).cast<Exercise>(),
+      performedSets: (fields[1] as List).cast<WorkoutSet>(),
       totalDurationInSeconds: fields[2] as int,
+      workoutName: fields[3] == null ? '' : fields[3] as String,
+      workoutLevel: fields[4] == null ? 1 : fields[4] as int,
+      isSurvivalMode: fields[5] == null ? false : fields[5] as bool,
+      isAlternatingSets: fields[6] == null ? false : fields[6] as bool,
+      intervalTime: fields[7] == null ? 60 : fields[7] as int,
+      wasStoppedPrematurely: fields[8] == null ? false : fields[8] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, WorkoutSummary obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
-      ..write(obj.exercises)
+      ..write(obj.performedSets)
       ..writeByte(2)
-      ..write(obj.totalDurationInSeconds);
+      ..write(obj.totalDurationInSeconds)
+      ..writeByte(3)
+      ..write(obj.workoutName)
+      ..writeByte(4)
+      ..write(obj.workoutLevel)
+      ..writeByte(5)
+      ..write(obj.isSurvivalMode)
+      ..writeByte(6)
+      ..write(obj.isAlternatingSets)
+      ..writeByte(7)
+      ..write(obj.intervalTime)
+      ..writeByte(8)
+      ..write(obj.wasStoppedPrematurely);
   }
 
   @override

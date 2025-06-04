@@ -3,14 +3,8 @@ import 'dart:async';
 import 'package:exercise_timer_app/models/user_workout.dart';
 import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/services/audio_service.dart';
-
-// Helper class for alternating sets
-class WorkoutSet {
-  final Exercise exercise;
-  final int setNumber;
-
-  WorkoutSet({required this.exercise, required this.setNumber});
-}
+import 'package:exercise_timer_app/models/workout_summary.dart';
+import 'package:exercise_timer_app/models/workout_set.dart'; // Import WorkoutSet
 
 class WorkoutController extends ChangeNotifier {
   final UserWorkout _workout;
@@ -52,8 +46,8 @@ class WorkoutController extends ChangeNotifier {
   int _elapsedSurvivalTime = 0;
   late List<Exercise> _currentLoopExercises;
 
-  // Callback for when workout finishes
-  VoidCallback? onWorkoutFinished;
+// Callback for when workout finishes
+  Function(WorkoutSummary)? onWorkoutFinished;
 
   WorkoutController({
     required UserWorkout workout,
@@ -87,7 +81,7 @@ class WorkoutController extends ChangeNotifier {
       _currentIntervalTimeRemaining = _workout.intervalTimeBetweenSets;
       _startTimer();
     } else {
-      onWorkoutFinished?.call(); // Immediately finish if no exercises
+      _finishWorkoutInternal(); // Immediately finish if no exercises
     }
   }
 
@@ -162,22 +156,24 @@ class WorkoutController extends ChangeNotifier {
           _currentIntervalTimeRemaining--; // Decrement immediately for the first second of the new set
         } else {
           _timer?.cancel();
-          onWorkoutFinished?.call();
-          return;
+          _finishWorkoutInternal();
+          return; // Exit early, no more operations on disposed controller
         }
       }
 
-      if (_selectedLevelOrMode == "survival") {
-        _elapsedSurvivalTime++; // Count up for survival mode
-      } else {
-        if (_totalTimeRemaining > 0) {
-          _totalTimeRemaining--;
+      // Only update and notify if the workout is still active (timer not cancelled by finishInternal)
+      if (_timer != null && _timer!.isActive) {
+        if (_selectedLevelOrMode == "survival") {
+          _elapsedSurvivalTime++; // Count up for survival mode
+        } else {
+          if (_totalTimeRemaining > 0) {
+            _totalTimeRemaining--;
+          }
+          if (_totalTimeRemaining < 0) _totalTimeRemaining = 0;
         }
-        if (_totalTimeRemaining < 0) _totalTimeRemaining = 0;
+        _totalWorkoutDuration++; // This still tracks total elapsed time for summary
+        notifyListeners();
       }
-      _totalWorkoutDuration++; // This still tracks total elapsed time for summary
-
-      notifyListeners();
     });
   }
 
@@ -197,7 +193,7 @@ class WorkoutController extends ChangeNotifier {
     _currentIntervalTimeRemaining = 0;
     _totalTimeRemaining = 0;
     notifyListeners();
-    onWorkoutFinished?.call();
+    _finishWorkoutInternal();
   }
 
   List<WorkoutSet> _generateAlternatingWorkoutSequence() {
@@ -252,6 +248,45 @@ class WorkoutController extends ChangeNotifier {
         return false;
       }
     }
+  }
+
+  void _finishWorkoutInternal() {
+    _workoutStartTime ??= DateTime.now();
+
+    final bool wasStoppedPrematurely;
+    List<WorkoutSet> finalPerformedSets;
+
+    if (_selectedLevelOrMode == "survival") {
+      wasStoppedPrematurely = false; // Survival mode is always "ended", not "stopped prematurely" in the same sense
+      finalPerformedSets = [];
+      if (_exercisesToPerform.isNotEmpty) {
+        int fullCycles = _totalSetsCompleted ~/ _exercisesToPerform.length;
+        int remainingSets = _totalSetsCompleted % _exercisesToPerform.length;
+
+        for (int i = 0; i < fullCycles; i++) {
+          finalPerformedSets.addAll(_exercisesToPerform);
+        }
+        if (remainingSets > 0) {
+          finalPerformedSets.addAll(_exercisesToPerform.sublist(0, remainingSets));
+        }
+      }
+    } else {
+      wasStoppedPrematurely = (_totalSetsCompleted < _exercisesToPerform.length);
+      finalPerformedSets = _exercisesToPerform.sublist(0, _totalSetsCompleted);
+    }
+
+    final summary = WorkoutSummary(
+      date: _workoutStartTime!,
+      performedSets: finalPerformedSets,
+      totalDurationInSeconds: _totalWorkoutDuration,
+      workoutName: _workout.name,
+      workoutLevel: _selectedLevelOrMode is int ? _selectedLevelOrMode : 1, // Default to 1 if survival
+      isSurvivalMode: _selectedLevelOrMode == "survival",
+      isAlternatingSets: _isAlternateMode,
+      intervalTime: _workout.intervalTimeBetweenSets,
+      wasStoppedPrematurely: wasStoppedPrematurely,
+    );
+    onWorkoutFinished?.call(summary);
   }
 
   // Helper to calculate total sets for a given level, ensuring strict increase

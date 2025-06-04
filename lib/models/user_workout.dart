@@ -26,6 +26,9 @@ class UserWorkout extends HiveObject {
   @HiveField(6) // New field for selected level
   int? selectedLevel; // Nullable, default to 1 if null
 
+  @HiveField(7) // New field for survival mode selection
+  bool? selectedSurvivalMode; // Nullable, default to false if null
+
   UserWorkout({
     required this.id,
     required this.name,
@@ -34,5 +37,6 @@ class UserWorkout extends HiveObject {
     required this.totalWorkoutTime,
     this.selectedAlternateSets,
     this.selectedLevel,
+    this.selectedSurvivalMode, // Add to constructor
   });
 }

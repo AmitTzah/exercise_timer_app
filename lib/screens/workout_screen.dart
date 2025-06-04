@@ -4,6 +4,7 @@ import 'package:exercise_timer_app/models/user_workout.dart';
 import 'package:exercise_timer_app/services/audio_service.dart';
 import 'package:exercise_timer_app/screens/workout_summary_display_screen.dart';
 import 'package:exercise_timer_app/controllers/workout_controller.dart';
+import 'package:exercise_timer_app/models/workout_summary.dart';
 
 class WorkoutScreen extends StatefulWidget {
   final UserWorkout workout;
@@ -37,9 +38,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
 
     _workoutController.addListener(_onControllerChanged);
-    _workoutController.onWorkoutFinished = () {
+    _workoutController.onWorkoutFinished = (summary) {
       _navigateToWorkoutSummaryDisplay(
-        completed: _workoutController.totalSetsCompleted == _workoutController.totalSets,
+        summary: summary,
       );
     };
   }
@@ -64,14 +65,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     });
   }
 
-  void _navigateToWorkoutSummaryDisplay({required bool completed}) {
+  void _navigateToWorkoutSummaryDisplay({required WorkoutSummary summary}) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => WorkoutSummaryDisplayScreen(
-          workoutStartTime: _workoutController.workoutStartTime!,
-          exercises: widget.workout.exercises,
-          totalDurationInSeconds: _workoutController.totalWorkoutDuration,
-          completed: completed,
+          summary: summary,
         ),
       ),
     );
@@ -144,10 +142,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                           ),
                         ),
                         subtitle: Text(
-                          'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}' +
-                              (workoutSet.exercise.reps != null
-                                  ? ', Reps: ${workoutSet.exercise.reps}' // Added reps to subtitle with comma
-                                  : ''),
+                          'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}${workoutSet.exercise.reps != null ? ', Reps: ${workoutSet.exercise.reps}' : ''}',
                           style: TextStyle(
                             color: isCurrent ? Colors.blueAccent : Colors.grey[600],
                             fontSize: 16,
@@ -201,9 +196,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                               barrierDismissible: false,
                               builder: (BuildContext context) {
                                 return AlertDialog(
-                                  title: const Text('Finish Workout?'),
+                                  title: const Text('Stop Workout?'),
                                   content: const Text(
-                                    'Are you sure you want to finish the workout?',
+                                    'Are you sure you want to stop the workout?',
                                   ),
                                   actions: <Widget>[
                                     TextButton(
@@ -214,7 +209,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                       },
                                     ),
                                     TextButton(
-                                      child: const Text('Finish'),
+                                      child: const Text('Stop'),
                                       onPressed: () {
                                         Navigator.of(context).pop();
                                         _workoutController.finishWorkout();
@@ -230,7 +225,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                             minimumSize: const Size(150, 50),
                           ),
                           child: const Text(
-                            'Finish Workout',
+                            'Stop Workout',
                             style: TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),

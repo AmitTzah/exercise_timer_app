@@ -1,5 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:async'; // Import for Completer
+import 'package:flutter/foundation.dart'; // For debugPrint
 
 class AudioService {
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -46,7 +47,7 @@ class AudioService {
   Future<void> playExerciseAnnouncement(String exerciseDisplayName) async {
     final String? fileName = _exerciseSoundMap[exerciseDisplayName];
     if (fileName == null) {
-      print('Error: Sound file not found for exercise: $exerciseDisplayName');
+      debugPrint('Error: Sound file not found for exercise: $exerciseDisplayName');
       return;
     }
 

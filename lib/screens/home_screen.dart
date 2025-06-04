@@ -17,7 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late UserWorkoutRepository _userWorkoutRepository;
   List<UserWorkout> _userWorkouts = [];
   final Map<String, bool> _alternateModeSelections = {};
-  final Map<String, dynamic> _levelSelections = {}; // Stores int for level or "survival" string
+  final Map<String, int> _levelSelections = {}; // Stores int for level
+  final Map<String, bool> _survivalModeSelections = {}; // Stores bool for survival mode
 
   @override
   void didChangeDependencies() {
@@ -45,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
       for (var workout in workouts) {
         _alternateModeSelections[workout.id] = workout.selectedAlternateSets ?? false;
         _levelSelections[workout.id] = workout.selectedLevel ?? 1;
+        _survivalModeSelections[workout.id] = workout.selectedSurvivalMode ?? false; // Initialize survival mode
       }
     });
   }
@@ -129,13 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.pop(context, i);
                         },
                       ),
-                    ListTile(
-                      title: const Text('Survival Mode'),
-                      trailing: currentLevel == "survival" ? const Icon(Icons.check, color: Colors.blue) : null,
-                      onTap: () {
-                        Navigator.pop(context, "survival");
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -231,13 +226,30 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Text('Alternate Sets'),
                           ],
                         ),
+                        // Survival Mode Checkbox
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _survivalModeSelections[workout.id] ?? false,
+                              onChanged: (bool? newValue) async {
+                                setState(() {
+                                  _survivalModeSelections[workout.id] = newValue ?? false;
+                                });
+                                // Persist the change
+                                workout.selectedSurvivalMode = newValue ?? false;
+                                await _userWorkoutRepository.saveUserWorkout(workout);
+                              },
+                            ),
+                            const Text('Survival Mode'),
+                          ],
+                        ),
                         // Level Selection Row
                         Row(
                           children: [
                             Expanded( // Expanded to take available space
                               child: InkWell(
                                 onTap: () async {
-                                  final dynamic selectedValue = await _showLevelSelectionBottomSheet(
+                                  final int? selectedValue = await _showLevelSelectionBottomSheet(
                                     context,
                                     _levelSelections[workout.id] ?? 1,
                                     workout, // Pass the workout object
@@ -247,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       _levelSelections[workout.id] = selectedValue;
                                     });
                                     // Persist the change
-                                    workout.selectedLevel = selectedValue is int ? selectedValue : null; // Save int or null for survival
+                                    workout.selectedLevel = selectedValue;
                                     await _userWorkoutRepository.saveUserWorkout(workout);
                                   }
                                 },
@@ -261,13 +273,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween, // To push text and potential icon apart
                                     children: [
                                       Text( // Combined text
-                                        _levelSelections[workout.id] == "survival"
-                                            ? 'Level: Survival' // Add "Level:" here
-                                            : 'Level: L${_levelSelections[workout.id] ?? 1} (+${((_levelSelections[workout.id] ?? 1) == 1 ? 0 : ((((_levelSelections[workout.id] ?? 1) - 1) * 20)))}%)', // Updated percentage
+                                        'Level: L${_levelSelections[workout.id] ?? 1} (+${((_levelSelections[workout.id] ?? 1) == 1 ? 0 : ((((_levelSelections[workout.id] ?? 1) - 1) * 20)))}%)', // Updated percentage
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      // Optionally, re-add a subtle icon here if desired, e.g., Icons.unfold_more
-                                      // For now, let's keep it without an icon as per previous feedback.
                                     ],
                                   ),
                                 ),
@@ -290,7 +298,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     builder: (context) => WorkoutScreen(
                                       workout: workout,
                                       isAlternateMode: _alternateModeSelections[workout.id] ?? false,
-                                      selectedLevelOrMode: _levelSelections[workout.id] ?? 1,
+                                      selectedLevelOrMode: _survivalModeSelections[workout.id] == true
+                                          ? "survival"
+                                          : (_levelSelections[workout.id] ?? 1),
                                     ),
                                   ),
                                 );

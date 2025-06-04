@@ -40,7 +40,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
         *   Overall progress (e.g., "Total Sets: 7/30").
         *   Time counting down within the current Interval Time (or counting up in Survival Mode).
     *   **Pause Workout button:** Pauses and resumes the timer.
-    *   **Finish Workout button:** Prompts a confirmation dialog. If confirmed, navigates to the new Workout Summary Display Screen.
+    *   **Stop Workout button:** Prompts a confirmation dialog. If confirmed, navigates to the new Workout Summary Display Screen. The summary will reflect the exercises actually performed up to the point of stopping and the total time elapsed.
     *   Upon natural completion of all sets (not applicable in Survival Mode):
         *   An automated voice announces "workout_complete.wav".
         *   The app navigates to the Workout Summary Display Screen.
@@ -48,14 +48,16 @@ A personal Android exercise timer app designed to manage alternating sets for di
 ### II. Data & Progress Module
 
 *   **Workout Summary Display Screen:**
-    *   A new screen that displays the details of a completed or ended workout (date, exercises, total duration).
+    *   A new screen that displays comprehensive details of a completed or ended workout, including workout name, date, total duration, workout level, set progression mode (alternating/sequential), interval time, and a detailed list of individual sets performed.
+    *   Indicates if the workout was completed naturally or stopped prematurely.
     *   Provides explicit "Save Workout" and "Discard Workout" buttons.
     *   If "Save Workout" is pressed, the summary is stored using Hive.
 
 *   **Workout Summaries Screen:**
-    *   Displays a list or history of completed workouts.
-    *   Each entry shows key details (e.g., date, exercises, duration).
-    *   Ability to view details of a specific past workout.
+    *   Displays a history of completed workouts in an enhanced, sortable list (newest first).
+    *   Each entry shows key details (workout name, date, duration, level, mode, interval, and completion status).
+    *   Users can expand each entry to view a detailed list of individual sets performed.
+    *   **Ability to delete individual workout summaries via a swipe-to-delete gesture.**
     *   **Data Storage:** Workout summaries are stored using Hive.
 
 *   **Goals Screen (Optional but desired future feature):**
