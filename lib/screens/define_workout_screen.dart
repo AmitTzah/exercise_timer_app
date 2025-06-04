@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart'; // Import provider
 import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/models/user_workout.dart';
-import 'package:exercise_timer_app/services/database_service.dart';
+import 'package:exercise_timer_app/repositories/user_workout_repository.dart'; // Use the new repository
 
 class DefineWorkoutScreen extends StatefulWidget {
   final UserWorkout? workout; // Optional: for editing existing workouts
@@ -14,6 +15,7 @@ class DefineWorkoutScreen extends StatefulWidget {
 }
 
 class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
+  late UserWorkoutRepository _userWorkoutRepository; // Declare repository
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _workoutNameController = TextEditingController();
   final TextEditingController _newExerciseNameController =
@@ -43,6 +45,12 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
       _intervalTimeController.text = _intervalTime.toString();
       _alternateSets = false; // Default for new workouts
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _userWorkoutRepository = Provider.of<UserWorkoutRepository>(context); // Get repository
   }
 
   @override
@@ -107,7 +115,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
         alternateSets: _alternateSets, // Save the new field
       );
 
-      await DatabaseService.saveUserWorkout(newWorkout);
+      await _userWorkoutRepository.saveUserWorkout(newWorkout); // Use repository
 
       if (!mounted) return;
       Navigator.of(context).pop(); // Go back to the home screen

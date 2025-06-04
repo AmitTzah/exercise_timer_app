@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:exercise_timer_app/models/user_workout.dart';
-import 'package:exercise_timer_app/services/database_service.dart';
+import 'package:exercise_timer_app/repositories/user_workout_repository.dart'; // Use the new repository
 import 'package:exercise_timer_app/screens/define_workout_screen.dart';
 import 'package:exercise_timer_app/screens/workout_screen.dart';
-import 'package:exercise_timer_app/screens/workout_summaries_screen.dart'; // For history button
+import 'package:exercise_timer_app/screens/workout_summaries_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,18 +14,30 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late UserWorkoutRepository _userWorkoutRepository;
   List<UserWorkout> _userWorkouts = [];
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _userWorkoutRepository = Provider.of<UserWorkoutRepository>(context);
+    _userWorkoutRepository.listenable.addListener(_onWorkoutsChanged);
+    _loadUserWorkouts(); // Initial load
+  }
+
+  @override
+  void dispose() {
+    _userWorkoutRepository.listenable.removeListener(_onWorkoutsChanged);
+    super.dispose();
+  }
+
+  void _onWorkoutsChanged() {
     _loadUserWorkouts();
   }
 
-  Future<void> _loadUserWorkouts() async {
-    final workouts = DatabaseService.getAllUserWorkouts();
+  void _loadUserWorkouts() {
     setState(() {
-      _userWorkouts = workouts;
+      _userWorkouts = _userWorkoutRepository.getAllUserWorkouts();
     });
   }
 
@@ -50,8 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirm == true) {
-      await DatabaseService.deleteUserWorkout(id);
-      _loadUserWorkouts(); // Refresh the list
+      await _userWorkoutRepository.deleteUserWorkout(id);
+      // _loadUserWorkouts() will be called by the listener
     }
   }
 
@@ -112,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               MaterialPageRoute(
                                 builder: (context) => WorkoutScreen(workout: workout),
                               ),
-                            ).then((_) => _loadUserWorkouts()); // Refresh after workout
+                            );
                           },
                         ),
                         IconButton(
@@ -122,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               MaterialPageRoute(
                                 builder: (context) => DefineWorkoutScreen(workout: workout),
                               ),
-                            ).then((_) => _loadUserWorkouts()); // Refresh after edit
+                            ); // No need to refresh explicitly, listener handles it
                           },
                         ),
                         IconButton(
@@ -141,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(
               builder: (context) => const DefineWorkoutScreen(),
             ),
-          ).then((_) => _loadUserWorkouts()); // Refresh after adding new workout
+          ); // No need to refresh explicitly, listener handles it
         },
         child: const Icon(Icons.add),
       ),

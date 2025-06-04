@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Import provider
 import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/models/workout_summary.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:exercise_timer_app/repositories/workout_summary_repository.dart'; // Use the new repository
 import 'package:intl/intl.dart'; // For date formatting
 
 class WorkoutSummaryDisplayScreen extends StatelessWidget {
@@ -96,7 +97,8 @@ class WorkoutSummaryDisplayScreen extends StatelessWidget {
                         exercises: exercises,
                         totalDurationInSeconds: totalDurationInSeconds,
                       );
-                      await Hive.box<WorkoutSummary>('workoutSummaries').add(workoutSummary);
+                      final workoutSummaryRepository = Provider.of<WorkoutSummaryRepository>(context, listen: false);
+                      await workoutSummaryRepository.addWorkoutSummary(workoutSummary);
                       if (!context.mounted) return;
                       Navigator.of(context).popUntil((route) => route.isFirst); // Go back to setup screen
                     },

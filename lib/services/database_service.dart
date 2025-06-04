@@ -2,11 +2,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/models/workout_summary.dart';
 import 'package:exercise_timer_app/models/goal.dart';
-import 'package:exercise_timer_app/models/user_workout.dart'; // Import new model
+import 'package:exercise_timer_app/models/user_workout.dart';
 
 class DatabaseService {
-  static late Box<UserWorkout> _userWorkoutsBox;
-  static bool _isInitialized = false; // Flag to track initialization
+  static bool _isInitialized = false;
 
   static Future<void> init() async {
     if (_isInitialized) {
@@ -15,34 +14,23 @@ class DatabaseService {
 
     await Hive.initFlutter();
 
-    // Register adapters only if not already registered
     if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(ExerciseAdapter());
     if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(WorkoutSummaryAdapter());
-    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(UserWorkoutAdapter()); // UserWorkout uses typeId 2
-    if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(GoalAdapter()); // Assuming GoalAdapter uses typeId 3
-
-    await Hive.openBox<WorkoutSummary>('workoutSummaries');
-    await Hive.openBox<Goal>('goals');
-    _userWorkoutsBox = await Hive.openBox<UserWorkout>('userWorkouts');
+    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(UserWorkoutAdapter());
+    if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(GoalAdapter());
 
     _isInitialized = true;
   }
 
-  // CRUD operations for UserWorkout
-  static Future<void> saveUserWorkout(UserWorkout workout) async {
-    await _userWorkoutsBox.put(workout.id, workout);
+  static Future<Box<UserWorkout>> openUserWorkoutsBox() async {
+    return await Hive.openBox<UserWorkout>('userWorkouts');
   }
 
-  static UserWorkout? getUserWorkout(String id) {
-    return _userWorkoutsBox.get(id);
+  static Future<Box<WorkoutSummary>> openWorkoutSummariesBox() async {
+    return await Hive.openBox<WorkoutSummary>('workoutSummaries');
   }
 
-  static List<UserWorkout> getAllUserWorkouts() {
-    final workouts = _userWorkoutsBox.values.toList();
-    return workouts;
-  }
-
-  static Future<void> deleteUserWorkout(String id) async {
-    await _userWorkoutsBox.delete(id);
+  static Future<Box<Goal>> openGoalsBox() async {
+    return await Hive.openBox<Goal>('goals');
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:hive/hive.dart'; // Keep Hive import for Box type
 import 'package:exercise_timer_app/models/workout_summary.dart';
+import 'package:exercise_timer_app/repositories/workout_summary_repository.dart'; // Use the new repository
 
 class WorkoutSummariesScreen extends StatelessWidget {
   const WorkoutSummariesScreen({super.key});
@@ -14,12 +16,14 @@ class WorkoutSummariesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final workoutSummaryRepository = Provider.of<WorkoutSummaryRepository>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Workout Summaries'),
       ),
       body: ValueListenableBuilder(
-        valueListenable: Hive.box<WorkoutSummary>('workoutSummaries').listenable(),
+        valueListenable: workoutSummaryRepository.listenable, // Use repository's listenable
         builder: (context, Box<WorkoutSummary> box, _) {
           if (box.isEmpty) {
             return const Center(

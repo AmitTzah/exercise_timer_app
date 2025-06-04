@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'package:exercise_timer_app/models/user_workout.dart'; // Import UserWorkout
-import 'package:exercise_timer_app/models/exercise.dart'; // Import Exercise
+import 'package:provider/provider.dart';
+import 'package:exercise_timer_app/models/user_workout.dart';
 import 'package:exercise_timer_app/services/audio_service.dart';
 import 'package:exercise_timer_app/screens/workout_summary_display_screen.dart';
+import 'package:exercise_timer_app/controllers/workout_controller.dart';
 
 class WorkoutScreen extends StatefulWidget {
-  final UserWorkout workout; // Now accepts a UserWorkout object
+  final UserWorkout workout;
 
   const WorkoutScreen({super.key, required this.workout});
 
@@ -14,182 +14,54 @@ class WorkoutScreen extends StatefulWidget {
   State<WorkoutScreen> createState() => _WorkoutScreenState();
 }
 
-// Helper class for alternating sets
-class _WorkoutSet {
-  final Exercise exercise;
-  final int setNumber;
-
-  _WorkoutSet({required this.exercise, required this.setNumber});
-}
-
 class _WorkoutScreenState extends State<WorkoutScreen> {
-  late AudioService _audioService;
-  late Timer _timer;
-  int _currentIntervalTimeRemaining = 0;
-  int _totalSetsCompleted = 0;
-  int _totalWorkoutDuration = 0; // in seconds
-  DateTime? _workoutStartTime;
-  bool _isPaused = false;
-
-  // Variables for workout sequence
-  late List<_WorkoutSet> _exercisesToPerform;
-  int _currentOverallSetIndex = 0; // Index in _exercisesToPerform list
-  late int _totalExpectedWorkoutDuration;
-  late int _totalTimeRemaining;
+  late WorkoutController _workoutController;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _audioService = AudioService();
-    _workoutStartTime = DateTime.now();
+    final audioService = Provider.of<AudioService>(context, listen: false);
+    _workoutController = WorkoutController(
+      workout: widget.workout,
+      audioService: audioService,
+    );
 
-    if (widget.workout.alternateSets) {
-      _exercisesToPerform = _generateAlternatingWorkoutSequence();
-    } else {
-      _exercisesToPerform = _generateSequentialWorkoutSequence();
-    }
-
-    _totalExpectedWorkoutDuration = _exercisesToPerform.length * widget.workout.intervalTimeBetweenSets;
-    _totalTimeRemaining = _totalExpectedWorkoutDuration;
-
-    if (_exercisesToPerform.isNotEmpty) {
-      _currentIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets;
-      _startTimer();
-    } else {
-      // Handle case where workout has no exercises
-      _navigateToWorkoutSummaryDisplay(completed: true);
-    }
+    _workoutController.addListener(_onControllerChanged);
+    _workoutController.onWorkoutFinished = () {
+      _navigateToWorkoutSummaryDisplay(
+        completed: _workoutController.totalSetsCompleted == _workoutController.totalSets,
+      );
+    };
   }
 
   @override
   void dispose() {
-    _timer.cancel();
-    _audioService.dispose();
+    _workoutController.removeListener(_onControllerChanged);
+    _workoutController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async { // Make callback async
-      if (_isPaused) return;
-
-      // Use local variables to avoid issues with async operations and setState
-      int newIntervalTimeRemaining = _currentIntervalTimeRemaining;
-      int newTotalTimeRemaining = _totalTimeRemaining;
-      int newTotalWorkoutDuration = _totalWorkoutDuration;
-
-      if (newIntervalTimeRemaining > 0) {
-        newIntervalTimeRemaining--;
-      } else { // Interval just ended
-        // Await the completion of the set transition and sound playback
-        bool workoutContinues = await _moveToNextSetAndPrepareInterval();
-
-        if (mounted) { // Check if widget is still mounted after await
-          if (workoutContinues) {
-            newIntervalTimeRemaining = widget.workout.intervalTimeBetweenSets; // Reset for next interval
-            _audioService.playNextSet(); // Play sound immediately
-            newIntervalTimeRemaining--; // Decrement immediately for the first second of the new set
-          } else {
-            // Workout finished, navigation handled by _moveToNextSetAndPrepareInterval
-            // The timer is already cancelled in _moveToNextSetAndPrepareInterval.
-            return; // Exit timer callback as workout is complete
-          }
-        } else {
-          return; // Widget unmounted, exit
-        }
-      }
-
-      if (newTotalTimeRemaining > 0) {
-        newTotalTimeRemaining--;
-      }
-      if (newTotalTimeRemaining < 0) newTotalTimeRemaining = 0;
-      newTotalWorkoutDuration++;
-
-      if (mounted) { // Ensure widget is still mounted before calling setState
-        setState(() {
-          _currentIntervalTimeRemaining = newIntervalTimeRemaining;
-          _totalTimeRemaining = newTotalTimeRemaining;
-          _totalWorkoutDuration = newTotalWorkoutDuration;
-        });
-      }
-    });
-  }
-
-  void _pauseWorkout() {
+  void _onControllerChanged() {
     setState(() {
-      _isPaused = true;
+      if (_workoutController.currentOverallSetIndex * 60.0 != _scrollController.offset) {
+        _scrollController.animateTo(
+          _workoutController.currentOverallSetIndex * 60.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
-  }
-
-  void _resumeWorkout() {
-    setState(() {
-      _isPaused = false;
-    });
-  }
-
-  List<_WorkoutSet> _generateAlternatingWorkoutSequence() {
-    List<_WorkoutSet> sequence = [];
-    int maxSets = 0;
-    for (var exercise in widget.workout.exercises) {
-      if (exercise.sets > maxSets) {
-        maxSets = exercise.sets;
-      }
-    }
-
-    for (int s = 1; s <= maxSets; s++) {
-      for (var exercise in widget.workout.exercises) {
-        if (s <= exercise.sets) {
-          sequence.add(_WorkoutSet(exercise: exercise, setNumber: s));
-        }
-      }
-    }
-    return sequence;
-  }
-
-  List<_WorkoutSet> _generateSequentialWorkoutSequence() {
-    List<_WorkoutSet> sequence = [];
-    for (var exercise in widget.workout.exercises) {
-      for (int s = 1; s <= exercise.sets; s++) {
-        sequence.add(_WorkoutSet(exercise: exercise, setNumber: s));
-      }
-    }
-    return sequence;
-  }
-
-  Future<bool> _moveToNextSetAndPrepareInterval() async {
-    _totalSetsCompleted++; // Increment total sets completed after each set
-
-    if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
-      _currentOverallSetIndex++;
-      // _currentIntervalTimeRemaining will be reset by the caller (_startTimer)
-      // Scroll to the current item
-      _scrollController.animateTo(
-        _currentOverallSetIndex * 60.0, // Assuming each item has a height of 60.0
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-      return true; // Workout continues
-    } else {
-      // Workout complete
-      _timer.cancel(); // Ensure timer is cancelled before awaiting sound
-      _currentIntervalTimeRemaining = 0;
-      _totalTimeRemaining = 0;
-      await _audioService.playSessionComplete(); // Await sound completion
-      if (mounted) { // Check if widget is still mounted before navigating
-        _navigateToWorkoutSummaryDisplay(completed: true);
-      }
-      return false; // Workout finished
-    }
   }
 
   void _navigateToWorkoutSummaryDisplay({required bool completed}) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => WorkoutSummaryDisplayScreen(
-          workoutStartTime: _workoutStartTime!,
-          exercises:
-              widget.workout.exercises, // Pass exercises from UserWorkout
-          totalDurationInSeconds: _totalWorkoutDuration,
+          workoutStartTime: _workoutController.workoutStartTime!,
+          exercises: widget.workout.exercises,
+          totalDurationInSeconds: _workoutController.totalWorkoutDuration,
           completed: completed,
         ),
       ),
@@ -202,23 +74,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     return '$minutes:$remainingSeconds';
   }
 
-  int _getTotalSets() {
-    return widget.workout.exercises.fold(
-      0,
-      (sum, exercise) => sum + exercise.sets,
-    ); // Use from UserWorkout
-  }
-
   @override
   Widget build(BuildContext context) {
-    final totalSets = _getTotalSets();
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Workout: ${widget.workout.name}'), // Display workout name
-        automaticallyImplyLeading: false, // No back button during workout
+        title: Text('Workout: ${_workoutController.workout.name}'),
+        automaticallyImplyLeading: false,
       ),
-      body: SafeArea( // Wrapped the entire content in SafeArea
+      body: SafeArea(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -232,7 +95,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
-                      _formatDuration(_totalTimeRemaining),
+                      _formatDuration(_workoutController.totalTimeRemaining),
                       style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.deepOrange,
@@ -244,10 +107,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               Flexible(
                 child: ListView.builder(
                   controller: _scrollController,
-                  itemCount: _exercisesToPerform.length,
+                  itemCount: _workoutController.exercisesToPerform.length,
                   itemBuilder: (context, index) {
-                    final workoutSet = _exercisesToPerform[index];
-                    final isCurrent = index == _currentOverallSetIndex;
+                    final workoutSet = _workoutController.exercisesToPerform[index];
+                    final isCurrent = index == _workoutController.currentOverallSetIndex;
                     return Card(
                       color: isCurrent ? Colors.blue.shade100 : null,
                       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
@@ -272,7 +135,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         ),
                         trailing: isCurrent
                             ? Text(
-                                _formatDuration(_currentIntervalTimeRemaining),
+                                _formatDuration(_workoutController.currentIntervalTimeRemaining),
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blueAccent,
@@ -290,7 +153,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'Total Sets: $_totalSetsCompleted / $totalSets',
+                      'Total Sets: ${_workoutController.totalSetsCompleted} / ${_workoutController.totalSets}',
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 20),
@@ -299,24 +162,23 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       children: [
                         ElevatedButton(
                           onPressed: () {
-                            if (_isPaused) {
-                              _resumeWorkout();
+                            if (_workoutController.isPaused) {
+                              _workoutController.resumeWorkout();
                             } else {
-                              _pauseWorkout();
+                              _workoutController.pauseWorkout();
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _isPaused ? Colors.green : Colors.orange,
+                            backgroundColor: _workoutController.isPaused ? Colors.green : Colors.orange,
                             minimumSize: const Size(150, 50),
                           ),
                           child: Text(
-                            _isPaused ? 'Resume Workout' : 'Pause Workout',
+                            _workoutController.isPaused ? 'Resume Workout' : 'Pause Workout',
                             style: const TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            _timer.cancel();
                             showDialog(
                               context: context,
                               barrierDismissible: false,
@@ -331,16 +193,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                       child: const Text('Cancel'),
                                       onPressed: () {
                                         Navigator.of(context).pop();
-                                        _startTimer();
+                                        _workoutController.resumeWorkout(); // Resume if cancelled
                                       },
                                     ),
                                     TextButton(
                                       child: const Text('Finish'),
                                       onPressed: () {
                                         Navigator.of(context).pop();
-                                        _navigateToWorkoutSummaryDisplay(
-                                          completed: false,
-                                        );
+                                        _workoutController.finishWorkout();
                                       },
                                     ),
                                   ],
