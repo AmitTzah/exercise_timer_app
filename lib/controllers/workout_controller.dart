@@ -116,7 +116,7 @@ class WorkoutController extends ChangeNotifier {
         if (exercise.sets > 0 && adjustedSets == 0) {
           adjustedSets = 1;
         }
-        tempAdjustedExercises.add(Exercise(name: exercise.name, sets: adjustedSets));
+        tempAdjustedExercises.add(Exercise(name: exercise.name, sets: adjustedSets, reps: exercise.reps));
         currentSumOfAdjustedSets += adjustedSets;
       }
 
@@ -132,9 +132,11 @@ class WorkoutController extends ChangeNotifier {
           }
         }
 
+        Exercise exerciseToAdjust = tempAdjustedExercises[largestSetIndex];
         tempAdjustedExercises[largestSetIndex] = Exercise(
-          name: tempAdjustedExercises[largestSetIndex].name,
-          sets: (tempAdjustedExercises[largestSetIndex].sets + difference).clamp(1, double.infinity).toInt(), // Ensure sets >= 1
+          name: exerciseToAdjust.name,
+          sets: (exerciseToAdjust.sets + difference).clamp(1, double.infinity).toInt(), // Ensure sets >= 1
+          reps: exerciseToAdjust.reps,
         );
       }
       _currentLoopExercises = tempAdjustedExercises;

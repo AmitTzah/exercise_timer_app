@@ -207,7 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         ...workout.exercises.map(
                           (e) => Text(
-                            '  - ${e.name} (${e.sets})',
+                            '  - ${e.name} (${e.sets}${e.reps != null ? 'x${e.reps}' : ''})', // Display sets and reps
                             style: const TextStyle(fontSize: 14.0),
                           ),
                         ),

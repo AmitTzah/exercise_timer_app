@@ -22,6 +22,8 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
       TextEditingController();
   final TextEditingController _newExerciseSetsController =
       TextEditingController();
+  final TextEditingController _newExerciseRepsController =
+      TextEditingController(); // New controller for reps
   final TextEditingController _intervalTimeController = TextEditingController();
 
   List<Exercise> _exercises = [];
@@ -37,6 +39,12 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
       _exercises = List.from(widget.workout!.exercises);
       _intervalTime = widget.workout!.intervalTimeBetweenSets;
       _intervalTimeController.text = _intervalTime.toString();
+      // Populate reps for existing exercises if available
+      for (var exercise in _exercises) {
+        if (exercise.reps != null) {
+          _newExerciseRepsController.text = exercise.reps.toString();
+        }
+      }
     } else {
       // Creating new workout, set default interval time
       _intervalTimeController.text = _intervalTime.toString();
@@ -54,6 +62,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
     _workoutNameController.dispose();
     _newExerciseNameController.dispose();
     _newExerciseSetsController.dispose();
+    _newExerciseRepsController.dispose(); // Dispose new controller
     _intervalTimeController.dispose();
     super.dispose();
   }
@@ -61,12 +70,14 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   void _addExercise() {
     final String name = _newExerciseNameController.text.trim();
     final int? sets = int.tryParse(_newExerciseSetsController.text.trim());
+    final int? reps = int.tryParse(_newExerciseRepsController.text.trim()); // Get reps input
 
     if (name.isNotEmpty && sets != null && sets > 0) {
       setState(() {
-        _exercises.add(Exercise(name: name, sets: sets));
+        _exercises.add(Exercise(name: name, sets: sets, reps: reps)); // Pass reps to constructor
         _newExerciseNameController.clear();
         _newExerciseSetsController.clear();
+        _newExerciseRepsController.clear(); // Clear reps input
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,6 +184,18 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8), // Add spacing
+                  Expanded(
+                    flex: 1,
+                    child: TextField(
+                      controller: _newExerciseRepsController, // New reps input field
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Reps', // Removed (Optional)
+                        hintText: 'e.g., 12',
+                      ),
+                    ),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.add_circle),
                     onPressed: _addExercise,
@@ -189,7 +212,10 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 4.0),
                     child: ListTile(
                       title: Text(exercise.name),
-                      subtitle: Text('Sets: ${exercise.sets}'),
+                      subtitle: Text(
+                        'Sets: ${exercise.sets}' +
+                            (exercise.reps != null ? ' | Reps: ${exercise.reps}' : ''), // Display reps if available
+                      ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),
                         onPressed: () => _removeExercise(index),

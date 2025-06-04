@@ -136,7 +136,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                             ? const Icon(Icons.arrow_right, color: Colors.blueAccent, size: 30)
                             : null,
                         title: Text(
-                          workoutSet.exercise.name,
+                          workoutSet.exercise.name, // Reverted title
                           style: TextStyle(
                             fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                             color: isCurrent ? Colors.blueAccent : Colors.black,
@@ -144,7 +144,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                           ),
                         ),
                         subtitle: Text(
-                          'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}',
+                          'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}' +
+                              (workoutSet.exercise.reps != null
+                                  ? ', Reps: ${workoutSet.exercise.reps}' // Added reps to subtitle with comma
+                                  : ''),
                           style: TextStyle(
                             color: isCurrent ? Colors.blueAccent : Colors.grey[600],
                             fontSize: 16,

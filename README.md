@@ -21,7 +21,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   Users can create new workouts or edit existing ones.
     *   Input fields for:
         *   Workout Name.
-        *   List of exercises (each with name and number of sets).
+        *   List of exercises (each with name, number of sets, and optional number of reps).
         *   Set Interval Time (seconds) between sets.
     *   Displays: Calculated total workout duration.
     *   Action: "Save Workout" button.
@@ -36,7 +36,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   The app emits a "next_set.mp3" sound at the end of each interval, signaling the end of the current interval and the immediate start of the next exercise's set.
     *   **Display during workout:**
         *   Current exercise to perform.
-        *   Current set number for that exercise (e.g., "Pullups: Set 3/10").
+        *   Current set number for that exercise (e.g., "Pullups: Set 3/10, Reps: 12").
         *   Overall progress (e.g., "Total Sets: 7/30").
         *   Time counting down within the current Interval Time (or counting up in Survival Mode).
     *   **Pause Workout button:** Pauses and resumes the timer.
