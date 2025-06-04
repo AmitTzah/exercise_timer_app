@@ -37,7 +37,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   **Display during workout:**
         *   Current exercise to perform.
         *   Current set number for that exercise (e.g., "Pullups: Set 3/10").
-        *   Overall progress (e.g., "Total Set: 7/30").
+        *   Overall progress (e.g., "Total Sets: 7/30").
         *   Time counting down within the current Interval Time (or counting up in Survival Mode).
     *   **Pause Workout button:** Pauses and resumes the timer.
     *   **Finish Workout button:** Prompts a confirmation dialog. If confirmed, navigates to the new Workout Summary Display Screen.

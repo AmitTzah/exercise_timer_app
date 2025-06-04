@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<dynamic> _showLevelSelectionBottomSheet(BuildContext context, dynamic currentLevel, UserWorkout workout) async {
     // Helper to calculate total sets for a given level, ensuring strict increase
-    int _calculateTotalSetsForLevel(int level) {
+    int calculateTotalSetsForLevel(int level) {
       int totalOriginalSets = workout.exercises.fold(0, (sum, exercise) => sum + exercise.sets);
       if (totalOriginalSets == 0) return 0; // Handle empty workout
 
@@ -93,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Ensure strict increase for total sets compared to previous level
       if (level > 1) {
-        int previousLevelSets = _calculateTotalSetsForLevel(level - 1); // Recursive call
+        int previousLevelSets = calculateTotalSetsForLevel(level - 1); // Recursive call
         if (calculatedSets <= previousLevelSets) {
           calculatedSets = previousLevelSets + 1; // Force an increment
         }
@@ -122,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     for (int i = 1; i <= 10; i++) // Changed to 10 levels
                       ListTile(
                         title: Text(
-                          'Level $i (+${i == 1 ? 0 : ((i - 1) * 20)}%) - Total Sets: ${_calculateTotalSetsForLevel(i)}', // Updated percentage
+                          'Level $i (+${i == 1 ? 0 : ((i - 1) * 20)}%) - Total Sets: ${calculateTotalSetsForLevel(i)}', // Updated percentage
                         ),
                         trailing: i == currentLevel ? const Icon(Icons.check, color: Colors.blue) : null,
                         onTap: () {

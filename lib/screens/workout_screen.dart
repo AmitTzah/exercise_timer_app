@@ -114,6 +114,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         color: Colors.deepOrange,
                       ),
                     ),
+                    Text(
+                      'Total Sets: ${_workoutController.totalSetsCompleted}/${_workoutController.exercisesToPerform.length}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ],
                 ),
               ),
