@@ -21,7 +21,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   Users can create new workouts or edit existing ones.
     *   Input fields for:
         *   Workout Name.
-        *   List of exercises (each with name, number of sets, and optional number of reps).
+        *   List of exercises (users select from a predefined list of exercise names, each with number of sets, and optional number of reps).
         *   Set Interval Time (seconds) between sets.
     *   Displays: Calculated total workout duration.
     *   Action: "Save Workout" button.
@@ -33,7 +33,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   **Alternating Sets (If enabled):** Cycles through one set of each exercise before moving to the next set number for any exercise. For example, if you have Exercise A (3 sets) and Exercise B (2 sets), the order would be: A-Set1, B-Set1, A-Set2, B-Set2, A-Set3.
     *   **Workout Levels:** The total number of sets for each exercise is dynamically adjusted based on the selected level (1-10), ensuring a strictly increasing total set count across levels. The total set count is rounded up after the percentage increase.
     *   **Survival Mode:** The workout repeats indefinitely. The main timer displays elapsed time (counts up) instead of time remaining. The session ends only when the user manually presses "Finish Workout".
-    *   The app emits a "next_set.mp3" sound at the end of each interval, signaling the end of the current interval and the immediate start of the next exercise's set.
+    *   The app emits a "Next-Set.wav" sound at the end of each interval, immediately followed by the `exercise_name.wav` sound for the upcoming exercise, signaling the end of the current interval and the immediate start of the next exercise's set.
     *   **Display during workout:**
         *   Current exercise to perform.
         *   Current set number for that exercise (e.g., "Pullups: Set 3/10, Reps: 12").
@@ -42,7 +42,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   **Pause Workout button:** Pauses and resumes the timer.
     *   **Finish Workout button:** Prompts a confirmation dialog. If confirmed, navigates to the new Workout Summary Display Screen.
     *   Upon natural completion of all sets (not applicable in Survival Mode):
-        *   An automated voice announces "workout_complete.mp3".
+        *   An automated voice announces "workout_complete.wav".
         *   The app navigates to the Workout Summary Display Screen.
 
 ### II. Data & Progress Module
@@ -69,7 +69,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
 *   **Configurable Set Progression:** Users can choose between sequential or alternating sets *per session*.
 *   **Workout Levels & Survival Mode:** Dynamic adjustment of workout intensity and an endless challenge mode, with guaranteed distinct total sets per level.
 *   **Fixed Interval Timing:** Each set within a defined time slot.
-*   **Automated Audio Cues:** "next_set.mp3" for interval transitions, "workout_complete.mp3" for session completion.
+*   **Automated Audio Cues:** "Next-Set.wav" followed by `exercise_name.wav` for interval transitions, "workout_complete.wav" for session completion.
 *   **Progress Tracking:** Displays relevant progress information for workouts and goals.
 *   **Data Persistence:**
     *   User-defined Workouts, Workout Summaries & Goals: Local database (`Hive`).

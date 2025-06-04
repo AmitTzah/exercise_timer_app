@@ -157,7 +157,8 @@ class WorkoutController extends ChangeNotifier {
         bool workoutContinues = await _moveToNextSetAndPrepareInterval();
         if (workoutContinues) {
           _currentIntervalTimeRemaining = _workout.intervalTimeBetweenSets;
-          _audioService.playNextSet();
+          // Play "Next Set" sound followed by the next exercise name
+          await _audioService.playExerciseAnnouncement(_exercisesToPerform[_currentOverallSetIndex].exercise.name);
           _currentIntervalTimeRemaining--; // Decrement immediately for the first second of the new set
         } else {
           _timer?.cancel();

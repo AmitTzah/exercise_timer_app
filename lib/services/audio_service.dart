@@ -12,18 +12,59 @@ class AudioService {
     });
   }
 
-  Future<void> playNextSet() async {
+  // Mapping from display name to actual WAV file name
+  static const Map<String, String> _exerciseSoundMap = {
+    'Pull-ups': 'Pull-ups.wav',
+    'Dips': 'Dips.wav',
+    'Squats': 'Squats.wav',
+    'One-legged Squats': 'One-legged-squats.wav',
+    'Push-ups': 'Push-ups.wav',
+    'Sit-ups': 'Sit-ups.wav',
+    'Lunges': 'Lunges.wav',
+    'Crunches': 'Crunches.wav',
+    'Bench Press': 'Bench-Press.wav',
+    'Deadlift': 'Deadlift.wav',
+    'Muscle-Ups': 'Muscle-Ups.wav',
+    'Handstand Push-Ups': 'Handstand Push-Ups.wav',
+  };
+
+  Future<void> playNextSetSound() async {
     final completer = Completer<void>();
     StreamSubscription? tempSubscription;
 
     tempSubscription = _audioPlayer.onPlayerComplete.listen((event) {
       if (!completer.isCompleted) {
         completer.complete();
-        tempSubscription?.cancel(); // Cancel this specific listener
+        tempSubscription?.cancel();
       }
     });
 
-    await _audioPlayer.play(AssetSource('sounds/next_set.mp3'));
+    await _audioPlayer.play(AssetSource('sounds/Next-Set.wav'));
+    return completer.future;
+  }
+
+  Future<void> playExerciseAnnouncement(String exerciseDisplayName) async {
+    final String? fileName = _exerciseSoundMap[exerciseDisplayName];
+    if (fileName == null) {
+      print('Error: Sound file not found for exercise: $exerciseDisplayName');
+      return;
+    }
+
+    // Play "Next Set" sound first
+    await playNextSetSound();
+
+    // Then play the exercise specific sound
+    final completer = Completer<void>();
+    StreamSubscription? tempSubscription;
+
+    tempSubscription = _audioPlayer.onPlayerComplete.listen((event) {
+      if (!completer.isCompleted) {
+        completer.complete();
+        tempSubscription?.cancel();
+      }
+    });
+
+    await _audioPlayer.play(AssetSource('sounds/$fileName'));
     return completer.future;
   }
 
@@ -34,11 +75,11 @@ class AudioService {
     tempSubscription = _audioPlayer.onPlayerComplete.listen((event) {
       if (!completer.isCompleted) {
         completer.complete();
-        tempSubscription?.cancel(); // Cancel this specific listener
+        tempSubscription?.cancel();
       }
     });
 
-    await _audioPlayer.play(AssetSource('sounds/workout_complete.mp3'));
+    await _audioPlayer.play(AssetSource('sounds/workout_complete.wav'));
     return completer.future;
   }
 

@@ -18,8 +18,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   late UserWorkoutRepository _userWorkoutRepository; // Declare repository
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _workoutNameController = TextEditingController();
-  final TextEditingController _newExerciseNameController =
-      TextEditingController();
+  String? _selectedExerciseName; // New variable to hold selected exercise
   final TextEditingController _newExerciseSetsController =
       TextEditingController();
   final TextEditingController _newExerciseRepsController =
@@ -29,6 +28,23 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   List<Exercise> _exercises = [];
   int _intervalTime = 60; // Default to 60 seconds
   String _workoutId = const Uuid().v4(); // Generate new ID for new workouts
+
+  // Predefined list of exercises
+  final List<String> _predefinedExercises = [
+    'Pull-ups',
+    'Dips',
+    'Squats',
+    'One-legged Squats',
+    'Push-ups',
+    'Sit-ups',
+    'Lunges',
+    'Crunches',
+    'Bench Press',
+    'Deadlift',
+    'Muscle-Ups',
+    'Handstand Push-Ups',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +65,12 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
       // Creating new workout, set default interval time
       _intervalTimeController.text = _intervalTime.toString();
     }
+    // Set initial selected exercise if editing and it's in the predefined list
+    if (widget.workout != null && _exercises.isNotEmpty) {
+      _selectedExerciseName = _exercises.first.name; // Or the first exercise in the list
+    } else {
+      _selectedExerciseName = _predefinedExercises.first; // Default to the first in the list
+    }
   }
 
   @override
@@ -60,30 +82,29 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   @override
   void dispose() {
     _workoutNameController.dispose();
-    _newExerciseNameController.dispose();
     _newExerciseSetsController.dispose();
-    _newExerciseRepsController.dispose(); // Dispose new controller
+    _newExerciseRepsController.dispose();
     _intervalTimeController.dispose();
     super.dispose();
   }
 
   void _addExercise() {
-    final String name = _newExerciseNameController.text.trim();
+    final String? name = _selectedExerciseName; // Use the selected exercise name
     final int? sets = int.tryParse(_newExerciseSetsController.text.trim());
-    final int? reps = int.tryParse(_newExerciseRepsController.text.trim()); // Get reps input
+    final int? reps = int.tryParse(_newExerciseRepsController.text.trim());
 
-    if (name.isNotEmpty && sets != null && sets > 0) {
+    if (name != null && name.isNotEmpty && sets != null && sets > 0) {
       setState(() {
-        _exercises.add(Exercise(name: name, sets: sets, reps: reps)); // Pass reps to constructor
-        _newExerciseNameController.clear();
+        _exercises.add(Exercise(name: name, sets: sets, reps: reps));
         _newExerciseSetsController.clear();
-        _newExerciseRepsController.clear(); // Clear reps input
+        _newExerciseRepsController.clear();
+        _selectedExerciseName = _predefinedExercises.first; // Reset dropdown to first item
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please enter a valid exercise name and number of sets.',
+            'Please select an exercise and enter a valid number of sets.',
           ),
         ),
       );
@@ -160,45 +181,68 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                 'Exercises:',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              Row(
+              Column(
                 children: [
-                  Expanded(
-                    flex: 3,
-                    child: TextField(
-                      controller: _newExerciseNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Exercise Name',
-                        hintText: 'e.g., Pushups',
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedExerciseName,
+                          decoration: const InputDecoration(
+                            labelText: 'Exercise Name',
+                          ),
+                          items: _predefinedExercises.map((String exercise) {
+                            return DropdownMenuItem<String>(
+                              value: exercise,
+                              child: Text(exercise),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedExerciseName = newValue;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select an exercise.';
+                            }
+                            return null;
+                          },
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 1,
-                    child: TextField(
-                      controller: _newExerciseSetsController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Sets',
-                        hintText: 'e.g., 3',
+                  const SizedBox(height: 8), // Vertical spacing between rows
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: TextField(
+                          controller: _newExerciseSetsController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Sets',
+                            hintText: 'e.g., 3',
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8), // Add spacing
-                  Expanded(
-                    flex: 1,
-                    child: TextField(
-                      controller: _newExerciseRepsController, // New reps input field
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Reps', // Removed (Optional)
-                        hintText: 'e.g., 12',
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 1,
+                        child: TextField(
+                          controller: _newExerciseRepsController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Reps',
+                            hintText: 'e.g., 12',
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle),
-                    onPressed: _addExercise,
+                      IconButton(
+                        icon: const Icon(Icons.add_circle),
+                        onPressed: _addExercise,
+                      ),
+                    ],
                   ),
                 ],
               ),
