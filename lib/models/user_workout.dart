@@ -20,8 +20,11 @@ class UserWorkout extends HiveObject {
   @HiveField(4)
   int totalWorkoutTime; // in seconds
 
-  @HiveField(5) // New field for alternating sets
-  bool alternateSets;
+  @HiveField(5) // Re-using field 5, previously alternateSets
+  bool? selectedAlternateSets; // Nullable, default to false if null
+
+  @HiveField(6) // New field for selected level
+  int? selectedLevel; // Nullable, default to 1 if null
 
   UserWorkout({
     required this.id,
@@ -29,6 +32,7 @@ class UserWorkout extends HiveObject {
     required this.exercises,
     required this.intervalTimeBetweenSets,
     required this.totalWorkoutTime,
-    this.alternateSets = false, // Default to false
+    this.selectedAlternateSets,
+    this.selectedLevel,
   });
 }

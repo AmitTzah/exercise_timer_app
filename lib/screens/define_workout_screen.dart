@@ -27,8 +27,6 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   List<Exercise> _exercises = [];
   int _intervalTime = 60; // Default to 60 seconds
   String _workoutId = const Uuid().v4(); // Generate new ID for new workouts
-  bool _alternateSets = false; // New state variable for alternate sets
-
   @override
   void initState() {
     super.initState();
@@ -39,11 +37,9 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
       _exercises = List.from(widget.workout!.exercises);
       _intervalTime = widget.workout!.intervalTimeBetweenSets;
       _intervalTimeController.text = _intervalTime.toString();
-      _alternateSets = widget.workout!.alternateSets; // Initialize with existing value
     } else {
       // Creating new workout, set default interval time
       _intervalTimeController.text = _intervalTime.toString();
-      _alternateSets = false; // Default for new workouts
     }
   }
 
@@ -112,7 +108,6 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
         exercises: _exercises,
         intervalTimeBetweenSets: _intervalTime,
         totalWorkoutTime: totalDuration,
-        alternateSets: _alternateSets, // Save the new field
       );
 
       await _userWorkoutRepository.saveUserWorkout(newWorkout); // Use repository
@@ -226,16 +221,6 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                 },
               ),
               const SizedBox(height: 10), // Reduced space
-              CheckboxListTile(
-                title: const Text('Alternate Sets'),
-                value: _alternateSets,
-                onChanged: (bool? value) {
-                  setState(() {
-                    _alternateSets = value ?? false;
-                  });
-                },
-                controlAffinity: ListTileControlAffinity.leading, // Checkbox on the left
-              ),
               const SizedBox(height: 20),
               Text(
                 'Total Workout Duration: ${_calculateTotalDuration()} seconds',

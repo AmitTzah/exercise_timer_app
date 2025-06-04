@@ -7,8 +7,15 @@ import 'package:exercise_timer_app/controllers/workout_controller.dart';
 
 class WorkoutScreen extends StatefulWidget {
   final UserWorkout workout;
+  final bool isAlternateMode;
+  final dynamic selectedLevelOrMode; // int for level, String for "survival"
 
-  const WorkoutScreen({super.key, required this.workout});
+  const WorkoutScreen({
+    super.key,
+    required this.workout,
+    required this.isAlternateMode,
+    required this.selectedLevelOrMode,
+  });
 
   @override
   State<WorkoutScreen> createState() => _WorkoutScreenState();
@@ -25,6 +32,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     _workoutController = WorkoutController(
       workout: widget.workout,
       audioService: audioService,
+      isAlternateMode: widget.isAlternateMode,
+      selectedLevelOrMode: widget.selectedLevelOrMode,
     );
 
     _workoutController.addListener(_onControllerChanged);
@@ -91,11 +100,15 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'Total Time Remaining:',
+                      widget.selectedLevelOrMode == "survival"
+                          ? 'Survival Time:'
+                          : 'Total Time Remaining:',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
-                      _formatDuration(_workoutController.totalTimeRemaining),
+                      widget.selectedLevelOrMode == "survival"
+                          ? _formatDuration(_workoutController.elapsedSurvivalTime)
+                          : _formatDuration(_workoutController.totalTimeRemaining),
                       style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.deepOrange,
@@ -152,11 +165,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                 child: Column(
                   children: [
-                    Text(
-                      'Total Sets: ${_workoutController.totalSetsCompleted} / ${_workoutController.totalSets}',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 20),
+                    // Removed the redundant "Total Time Remaining" / "Time Survived" text
+                    const SizedBox(height: 20), // Keep spacing for buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
