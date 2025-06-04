@@ -38,7 +38,7 @@ class AudioService {
       }
     });
 
-    await _audioPlayer.play(AssetSource('sounds/session_complete.mp3'));
+    await _audioPlayer.play(AssetSource('sounds/workout_complete.mp3'));
     return completer.future;
   }
 

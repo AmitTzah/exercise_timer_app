@@ -42,7 +42,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   **Pause Workout button:** Pauses and resumes the timer.
     *   **Finish Workout button:** Prompts a confirmation dialog. If confirmed, navigates to the new Workout Summary Display Screen.
     *   Upon natural completion of all sets (not applicable in Survival Mode):
-        *   An automated voice announces "session_complete.mp3".
+        *   An automated voice announces "workout_complete.mp3".
         *   The app navigates to the Workout Summary Display Screen.
 
 ### II. Data & Progress Module
@@ -69,7 +69,7 @@ A personal Android exercise timer app designed to manage alternating sets for di
 *   **Configurable Set Progression:** Users can choose between sequential or alternating sets *per session*.
 *   **Workout Levels & Survival Mode:** Dynamic adjustment of workout intensity and an endless challenge mode, with guaranteed distinct total sets per level.
 *   **Fixed Interval Timing:** Each set within a defined time slot.
-*   **Automated Audio Cues:** "next_set.mp3" for interval transitions, "session_complete.mp3" for session completion.
+*   **Automated Audio Cues:** "next_set.mp3" for interval transitions, "workout_complete.mp3" for session completion.
 *   **Progress Tracking:** Displays relevant progress information for workouts and goals.
 *   **Data Persistence:**
     *   User-defined Workouts, Workout Summaries & Goals: Local database (`Hive`).
