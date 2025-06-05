@@ -601,10 +601,10 @@ packages:
     dependency: transitive
     description:
       name: rxdart
-      sha256: "0c7c0cedd93788d996e33041ffecda924cc54389199cde4e6a34b440f50044cb"
+      sha256: "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"
       url: "https://pub.dev"
     source: hosted
-    version: "0.27.7"
+    version: "0.28.0"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -726,10 +726,10 @@ packages:
     dependency: "direct main"
     description:
       name: stop_watch_timer
-      sha256: "3dbcd084e6a3ef2d6941a861ca6628ca119c68b5977e9666f0c55cda42649078"
+      sha256: "01441a71ea3d804b73025c172313f2f1bb253da40ecd1390bd3ada7553548c43"
       url: "https://pub.dev"
     source: hosted
-    version: "1.5.0"
+    version: "3.2.2"
   stream_channel:
     dependency: transitive
     description:

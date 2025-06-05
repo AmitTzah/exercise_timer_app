@@ -12,6 +12,7 @@ class WorkoutController extends ChangeNotifier {
   final AudioService _audioService;
   DateTime? _workoutStartTime;
   bool _workoutCompletedAudioPlayed = false; // Re-add this field
+  int _currentRawTimeMs = 0; // New: To store the latest raw time from the timer
 
   final StopWatchTimer _stopWatchTimer = StopWatchTimer(
     mode: StopWatchMode.countUp,
@@ -65,7 +66,7 @@ class WorkoutController extends ChangeNotifier {
 
     if (_workoutLogicService.exercisesToPerform.isNotEmpty) {
       debugPrint('StopWatchTimer started.');
-      _stopWatchTimer.onExecute.add(StopWatchExecute.start);
+      _stopWatchTimer.onStartTimer(); // Updated: Use new start method
       _startTimerListener();
     } else {
       _finishWorkoutInternal();
@@ -75,6 +76,7 @@ class WorkoutController extends ChangeNotifier {
   void _startTimerListener() {
     _rawTimeSubscription?.cancel(); 
     _rawTimeSubscription = _stopWatchTimer.rawTime.listen((value) async {
+      _currentRawTimeMs = value; // New: Update current raw time
       if (!_stopWatchTimer.isRunning) return;
 
       final int elapsedInCurrentIntervalMs = value - (_workoutLogicService.currentOverallSetIndex * _workout.intervalTimeBetweenSets * 1000);
@@ -96,7 +98,7 @@ class WorkoutController extends ChangeNotifier {
           _rawTimeSubscription = null;
           
           if (_stopWatchTimer.isRunning) {
-              _stopWatchTimer.onExecute.add(StopWatchExecute.stop);
+              _stopWatchTimer.onStopTimer(); // Updated: Use new stop method
               debugPrint('Workout finished naturally. StopWatchTimer stopped.');
           } else {
               debugPrint('Workout finished naturally. StopWatchTimer was already stopped.');
@@ -111,12 +113,12 @@ class WorkoutController extends ChangeNotifier {
   }
 
   void pauseWorkout() {
-    _stopWatchTimer.onExecute.add(StopWatchExecute.stop);
+    _stopWatchTimer.onStopTimer(); // Updated: Use new stop method
     notifyListeners();
   }
 
   void resumeWorkout() {
-    _stopWatchTimer.onExecute.add(StopWatchExecute.start);
+    _stopWatchTimer.onStartTimer(); // Updated: Use new start method
     notifyListeners();
   }
 
@@ -125,7 +127,7 @@ class WorkoutController extends ChangeNotifier {
     _rawTimeSubscription = null;
     
     if (_stopWatchTimer.isRunning) {
-        _stopWatchTimer.onExecute.add(StopWatchExecute.stop);
+        _stopWatchTimer.onStopTimer(); // Updated: Use new stop method
         debugPrint('Workout manually finished. StopWatchTimer stopped.');
     } else {
         debugPrint('Workout manually finished. StopWatchTimer was already stopped.');
@@ -159,11 +161,11 @@ class WorkoutController extends ChangeNotifier {
       finalPerformedSets = _workoutLogicService.exercisesToPerform.sublist(0, wasStoppedPrematurely ? _workoutLogicService.totalSetsCompleted : _workoutLogicService.exercisesToPerform.length);
     }
 
-    debugPrint('Creating WorkoutSummary. totalWorkoutDuration: ${_stopWatchTimer.rawTime.value / 1000.0} seconds');
+    debugPrint('Creating WorkoutSummary. totalWorkoutDuration: ${_currentRawTimeMs / 1000.0} seconds'); // Updated: Use _currentRawTimeMs
     final summary = WorkoutSummary(
       date: _workoutStartTime!,
       performedSets: finalPerformedSets,
-      totalDurationInSeconds: (_stopWatchTimer.rawTime.value / 1000.0).round(),
+      totalDurationInSeconds: (_currentRawTimeMs / 1000.0).round(), // Updated: Use _currentRawTimeMs
       workoutName: _workout.name,
       workoutLevel: _workoutLogicService.isSurvivalMode ? 1 : (_workoutLogicService.selectedLevelOrMode is int ? _workoutLogicService.selectedLevelOrMode : 1),
       isSurvivalMode: _workoutLogicService.isSurvivalMode,
