@@ -79,16 +79,28 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  String _formatDuration(double totalSeconds) {
+  String _formatDurationHMS(double totalSeconds) {
+    if (totalSeconds < 0) totalSeconds = 0; // Ensure non-negative
+    final int hours = (totalSeconds ~/ 3600).toInt();
+    final int minutes = ((totalSeconds % 3600) ~/ 60).toInt();
+    final int seconds = (totalSeconds % 60).toInt();
+
+    final String hoursStr = hours.toString().padLeft(2, '0');
+    final String minutesStr = minutes.toString().padLeft(2, '0');
+    final String secondsStr = seconds.toString().padLeft(2, '0');
+
+    return '$hoursStr:$minutesStr:$secondsStr';
+  }
+
+  String _formatDurationMS(double totalSeconds) {
+    if (totalSeconds < 0) totalSeconds = 0; // Ensure non-negative
     final int minutes = (totalSeconds ~/ 60).toInt();
     final int seconds = (totalSeconds % 60).toInt();
-    final int milliseconds = ((totalSeconds - totalSeconds.floor()) * 1000).toInt();
 
     final String minutesStr = minutes.toString().padLeft(2, '0');
     final String secondsStr = seconds.toString().padLeft(2, '0');
-    final String millisecondsStr = (milliseconds ~/ 100).toString(); // Displaying tenths of a second
 
-    return '$minutesStr:$secondsStr.$millisecondsStr';
+    return '$minutesStr:$secondsStr';
   }
 
   @override
@@ -115,8 +127,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                     ),
                     Text(
                       widget.selectedLevelOrMode == "survival"
-                          ? _formatDuration(_workoutController.elapsedSurvivalTime)
-                          : _formatDuration(_workoutController.totalTimeRemaining),
+                          ? _formatDurationHMS(_workoutController.elapsedSurvivalTime)
+                          : _formatDurationHMS(_workoutController.totalTimeRemaining),
                       style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.deepOrange,
@@ -160,7 +172,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         ),
                         trailing: isCurrent
                             ? Text(
-                                _formatDuration(_workoutController.currentIntervalTimeRemaining),
+                                _formatDurationMS(_workoutController.currentIntervalTimeRemaining),
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blueAccent,
