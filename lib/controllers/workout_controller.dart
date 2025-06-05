@@ -73,9 +73,18 @@ class WorkoutController extends ChangeNotifier {
       debugPrint('StopWatchTimer started.');
       _stopWatchTimer.onStartTimer(); // Updated: Use new start method
       _startTimerListener();
+      _initializeAndStartWorkoutAudio(); // Call async method for audio
     } else {
       _isWorkoutFinished = true; // Set flag if workout ends immediately
       _finishWorkoutInternal();
+    }
+  }
+
+  Future<void> _initializeAndStartWorkoutAudio() async {
+    await _audioService.playWorkoutStartedSound(); // Play sound when workout starts
+    // Announce the first exercise after the workout started sound
+    if (_workoutLogicService.exercisesToPerform.isNotEmpty) { // Ensure there's an exercise to announce
+      await _audioService.playJustExerciseSound(_workoutLogicService.currentWorkoutSet!.exercise.name);
     }
   }
 

@@ -84,6 +84,42 @@ class AudioService {
     return completer.future;
   }
 
+  Future<void> playWorkoutStartedSound() async {
+    final completer = Completer<void>();
+    StreamSubscription? tempSubscription;
+
+    tempSubscription = _audioPlayer.onPlayerComplete.listen((event) {
+      if (!completer.isCompleted) {
+        completer.complete();
+        tempSubscription?.cancel();
+      }
+    });
+
+    await _audioPlayer.play(AssetSource('sounds/workout_started.wav'));
+    return completer.future;
+  }
+
+  Future<void> playJustExerciseSound(String exerciseDisplayName) async {
+    final String? fileName = _exerciseSoundMap[exerciseDisplayName];
+    if (fileName == null) {
+      debugPrint('Error: Sound file not found for exercise: $exerciseDisplayName');
+      return;
+    }
+
+    final completer = Completer<void>();
+    StreamSubscription? tempSubscription;
+
+    tempSubscription = _audioPlayer.onPlayerComplete.listen((event) {
+      if (!completer.isCompleted) {
+        completer.complete();
+        tempSubscription?.cancel();
+      }
+    });
+
+    await _audioPlayer.play(AssetSource('sounds/$fileName'));
+    return completer.future;
+  }
+
   void dispose() {
     _playerCompleteSubscription?.cancel(); // Cancel the main subscription
     _audioPlayer.stop(); // Stop any ongoing playback
