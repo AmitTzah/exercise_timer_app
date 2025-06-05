@@ -29,7 +29,9 @@ class WorkoutController extends ChangeNotifier {
   double get totalExpectedWorkoutDuration => _workoutLogicService.totalSetsInSequence * _workout.intervalTimeBetweenSets.toDouble();
 
   Stream<int> get currentIntervalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
-    final int elapsedInCurrentIntervalMs = value - (_workoutLogicService.currentOverallSetIndex * _workout.intervalTimeBetweenSets * 1000);
+    // In survival mode, currentOverallSetIndex resets to 0, causing incorrect elapsed time calculation for display.
+    // totalSetsCompleted correctly tracks the cumulative number of sets finished.
+    final int elapsedInCurrentIntervalMs = value - (_workoutLogicService.totalSetsCompleted * _workout.intervalTimeBetweenSets * 1000);
     final int remainingMs = (_workout.intervalTimeBetweenSets * 1000) - elapsedInCurrentIntervalMs;
     return remainingMs > 0 ? remainingMs : 0;
   });
@@ -79,7 +81,9 @@ class WorkoutController extends ChangeNotifier {
       _currentRawTimeMs = value; // New: Update current raw time
       if (!_stopWatchTimer.isRunning) return;
 
-      final int elapsedInCurrentIntervalMs = value - (_workoutLogicService.currentOverallSetIndex * _workout.intervalTimeBetweenSets * 1000);
+      // In survival mode, currentOverallSetIndex resets to 0, causing incorrect elapsed time calculation.
+      // totalSetsCompleted correctly tracks the cumulative number of sets finished.
+      final int elapsedInCurrentIntervalMs = value - (_workoutLogicService.totalSetsCompleted * _workout.intervalTimeBetweenSets * 1000);
 
       if (elapsedInCurrentIntervalMs >= _workout.intervalTimeBetweenSets * 1000) {
         bool workoutContinues = _workoutLogicService.moveToNextSet();
