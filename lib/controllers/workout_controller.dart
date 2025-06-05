@@ -185,6 +185,7 @@ class WorkoutController extends ChangeNotifier {
       isAlternatingSets: _workoutLogicService.isAlternateMode,
       intervalTime: _workout.intervalTimeBetweenSets,
       wasStoppedPrematurely: wasStoppedPrematurely,
+      totalSets: finalPerformedSets.length,
     );
     onWorkoutFinished?.call(summary);
   }

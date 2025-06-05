@@ -113,6 +113,7 @@ class _WorkoutSummariesScreenState extends State<WorkoutSummariesScreen> {
                         if (summary.isSurvivalMode) const Text('Mode: Survival'),
                         if (summary.isAlternatingSets) const Text('Sets Order: Alternating'),
                         Text('Interval: ${summary.intervalTime}s'),
+                        Text('Total Sets Performed: ${summary.totalSets}'),
                         if (summary.wasStoppedPrematurely) const Text('Status: Stopped Early'), // Display status
                       ],
                     ),

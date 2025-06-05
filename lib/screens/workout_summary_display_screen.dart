@@ -67,7 +67,7 @@ class WorkoutSummaryDisplayScreen extends StatelessWidget {
             _buildSummaryRow(context, 'Workout Level:', summary.workoutLevel.toString()),
             _buildSummaryRow(context, 'Alternating Sets:', summary.isAlternatingSets ? 'Yes' : 'No'),
             _buildSummaryRow(context, 'Interval Time:', '${summary.intervalTime} seconds'),
-            _buildSummaryRow(context, 'Total Sets Performed:', summary.performedSets.length.toString()),
+            _buildSummaryRow(context, 'Total Sets Performed:', summary.totalSets.toString()),
             const SizedBox(height: 20),
             Text(
               'Exercises Performed:',

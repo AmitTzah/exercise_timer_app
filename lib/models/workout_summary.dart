@@ -32,6 +32,9 @@ class WorkoutSummary extends HiveObject {
   @HiveField(8, defaultValue: false) // New field for whether workout was stopped prematurely
   bool wasStoppedPrematurely;
 
+  @HiveField(9)
+  int totalSets;
+
   WorkoutSummary({
     required this.date,
     required this.performedSets, // Changed parameter name
@@ -42,6 +45,7 @@ class WorkoutSummary extends HiveObject {
     required this.isAlternatingSets,
     required this.intervalTime,
     required this.wasStoppedPrematurely, // New required parameter
+    required this.totalSets,
   });
 
   // Helper to get Duration object
