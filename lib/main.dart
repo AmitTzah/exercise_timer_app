@@ -45,6 +45,17 @@ class ExerciseTimerApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white, // Ensures a clean, white AppBar
+          foregroundColor: Colors.black87, // For icons like back arrow, menu, etc.
+          elevation: 1.0, // Subtle shadow for separation
+          centerTitle: true, // Centers the title text
+          titleTextStyle: TextStyle(
+            color: Colors.black87, // Dark grey for the title text
+            fontSize: 21.0,
+            fontWeight: FontWeight.w600, // Semi-bold
+          ),
+        ),
       ),
       home: const HomeScreen(),
     );
