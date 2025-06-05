@@ -11,5 +11,8 @@ class WorkoutSet extends HiveObject {
   @HiveField(1)
   int setNumber;
 
-  WorkoutSet({required this.exercise, required this.setNumber});
+  @HiveField(2)
+  bool isRestSet; // New field to indicate if this is a rest set
+
+  WorkoutSet({required this.exercise, required this.setNumber, this.isRestSet = false});
 }

@@ -147,24 +147,34 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                             ? const Icon(Icons.arrow_right, color: Colors.blueAccent, size: 30)
                             : null,
                         title: Text(
-                          workoutSet.exercise.name, // Reverted title
+                          workoutSet.isRestSet ? 'Rest' : workoutSet.exercise.name,
                           style: TextStyle(
                             fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                             color: isCurrent ? Colors.blueAccent : Colors.black,
                             fontSize: 20,
                           ),
                         ),
-                        subtitle: Text(
-                          'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}${workoutSet.exercise.reps != null ? ', Reps: ${workoutSet.exercise.reps}' : ''}',
-                          style: TextStyle(
-                            color: isCurrent ? Colors.blueAccent : Colors.grey[600],
-                            fontSize: 16,
-                          ),
-                        ),
+                        subtitle: workoutSet.isRestSet
+                            ? Text(
+                                'Duration: ${widget.workout.restDurationInSeconds ?? 0} seconds',
+                                style: TextStyle(
+                                  color: isCurrent ? Colors.blueAccent : Colors.grey[600],
+                                  fontSize: 16,
+                                ),
+                              )
+                            : Text(
+                                'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}${workoutSet.exercise.reps != null ? ', Reps: ${workoutSet.exercise.reps}' : ''}',
+                                style: TextStyle(
+                                  color: isCurrent ? Colors.blueAccent : Colors.grey[600],
+                                  fontSize: 16,
+                                ),
+                              ),
                         trailing: isCurrent
                             ? StreamBuilder<int>(
                                 stream: _workoutController.currentIntervalTimeRemainingStream,
-                                initialData: widget.workout.intervalTimeBetweenSets * 1000, // Initial data for the current interval
+                                initialData: workoutSet.isRestSet
+                                    ? (widget.workout.restDurationInSeconds ?? 0) * 1000
+                                    : widget.workout.intervalTimeBetweenSets * 1000,
                                 builder: (context, snapshot) {
                                   final int timeValue = snapshot.data ?? 0;
                                   return Text(

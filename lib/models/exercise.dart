@@ -13,5 +13,8 @@ class Exercise extends HiveObject {
   @HiveField(2) // New field for reps
   int? reps; // Reps can be optional
 
-  Exercise({required this.name, required this.sets, this.reps}); // Added reps to constructor
+  @HiveField(3) // New field for custom audio file name
+  String? audioFileName; // Optional: custom audio file for this exercise
+
+  Exercise({required this.name, required this.sets, this.reps, this.audioFileName}); // Added reps and audioFileName to constructor
 }

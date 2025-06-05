@@ -27,20 +27,46 @@ class WorkoutController extends ChangeNotifier {
   bool get isPaused => !_stopWatchTimer.isRunning;
   List<WorkoutSet> get exercisesToPerform => _workoutLogicService.exercisesToPerform;
   int get currentOverallSetIndex => _workoutLogicService.currentOverallSetIndex;
-  double get totalExpectedWorkoutDuration => _workoutLogicService.totalSetsInSequence * _workout.intervalTimeBetweenSets.toDouble();
+  // Use the new getter from WorkoutLogicService for total expected duration
+  double get totalExpectedWorkoutDuration => _workoutLogicService.totalWorkoutDurationWithRests.toDouble();
 
   Stream<int> get currentIntervalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
-    if (_isWorkoutFinished) return 0; // If workout is finished, remaining time is 0
-    // In survival mode, currentOverallSetIndex resets to 0, causing incorrect elapsed time calculation for display.
-    // totalSetsCompleted correctly tracks the cumulative number of sets finished.
-    final int elapsedInCurrentIntervalMs = value - (_workoutLogicService.totalSetsCompleted * _workout.intervalTimeBetweenSets * 1000);
-    final int remainingMs = (_workout.intervalTimeBetweenSets * 1000) - elapsedInCurrentIntervalMs;
+    if (_isWorkoutFinished) return 0;
+
+    final WorkoutSet? currentWs = _workoutLogicService.currentWorkoutSet;
+    if (currentWs == null) return 0; // Should not happen
+
+    final int currentSetDurationSec = currentWs.isRestSet
+        ? (_workout.restDurationInSeconds ?? 0)
+        : _workout.intervalTimeBetweenSets;
+
+    int cumulativeDurationOfCompletedSetsSec = 0;
+    for (int i = 0; i < _workoutLogicService.totalSetsCompleted; i++) {
+        if (i < _workoutLogicService.exercisesToPerform.length) { // Boundary check
+            final set = _workoutLogicService.exercisesToPerform[i];
+            if (set.isRestSet) {
+                cumulativeDurationOfCompletedSetsSec += (_workout.restDurationInSeconds ?? 0);
+            } else {
+                cumulativeDurationOfCompletedSetsSec += _workout.intervalTimeBetweenSets;
+            }
+        } else if (_workoutLogicService.isSurvivalMode) { // Handle survival mode looping
+             final set = _workoutLogicService.exercisesToPerform[i % _workoutLogicService.exercisesToPerform.length];
+             if (set.isRestSet) {
+                cumulativeDurationOfCompletedSetsSec += (_workout.restDurationInSeconds ?? 0);
+            } else {
+                cumulativeDurationOfCompletedSetsSec += _workout.intervalTimeBetweenSets;
+            }
+        }
+    }
+
+    final int elapsedInCurrentIntervalMs = value - (cumulativeDurationOfCompletedSetsSec * 1000);
+    final int remainingMs = (currentSetDurationSec * 1000) - elapsedInCurrentIntervalMs;
     return remainingMs > 0 ? remainingMs : 0;
   });
 
   Stream<int> get totalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
     if (_workoutLogicService.isSurvivalMode) return 0;
-    if (_isWorkoutFinished) return 0; // If workout is finished, remaining time is 0
+    if (_isWorkoutFinished) return 0;
     final int remainingMs = (totalExpectedWorkoutDuration * 1000).round() - value;
     return remainingMs > 0 ? remainingMs : 0;
   });
@@ -83,29 +109,53 @@ class WorkoutController extends ChangeNotifier {
   Future<void> _initializeAndStartWorkoutAudio() async {
     await _audioService.playWorkoutStartedSound(); // Play sound when workout starts
     // Announce the first exercise after the workout started sound
-    if (_workoutLogicService.exercisesToPerform.isNotEmpty) { // Ensure there's an exercise to announce
-      await _audioService.playJustExerciseSound(_workoutLogicService.currentWorkoutSet!.exercise.name);
+    if (_workoutLogicService.exercisesToPerform.isNotEmpty) {
+      final currentSet = _workoutLogicService.currentWorkoutSet!;
+      if (currentSet.isRestSet) {
+        await _audioService.playRestSound();
+      } else {
+        await _audioService.playJustExerciseSound(currentSet.exercise.name);
+      }
     }
   }
 
   void _startTimerListener() {
     _rawTimeSubscription?.cancel(); 
     _rawTimeSubscription = _stopWatchTimer.rawTime.listen((value) async {
-      _currentRawTimeMs = value; // New: Update current raw time
+      _currentRawTimeMs = value;
       if (!_stopWatchTimer.isRunning) return;
 
-      // In survival mode, currentOverallSetIndex resets to 0, causing incorrect elapsed time calculation.
-      // totalSetsCompleted correctly tracks the cumulative number of sets finished.
-      final int elapsedInCurrentIntervalMs = value - (_workoutLogicService.totalSetsCompleted * _workout.intervalTimeBetweenSets * 1000);
+      // Determine the duration of the current set (either interval or rest)
+      final int currentSetDurationMs = (_workoutLogicService.currentWorkoutSet?.isRestSet == true
+          ? (_workout.restDurationInSeconds ?? 0)
+          : _workout.intervalTimeBetweenSets) * 1000;
 
-      if (elapsedInCurrentIntervalMs >= _workout.intervalTimeBetweenSets * 1000) {
+      // Calculate elapsed time within the current set/interval
+      int cumulativeDurationOfCompletedSets = 0;
+      for (int i = 0; i < _workoutLogicService.totalSetsCompleted; i++) {
+        final set = _workoutLogicService.exercisesToPerform[i];
+        if (set.isRestSet) {
+          cumulativeDurationOfCompletedSets += (_workout.restDurationInSeconds ?? 0);
+        } else {
+          cumulativeDurationOfCompletedSets += _workout.intervalTimeBetweenSets;
+        }
+      }
+      final int elapsedInCurrentIntervalMs = value - (cumulativeDurationOfCompletedSets * 1000);
+
+      if (elapsedInCurrentIntervalMs >= currentSetDurationMs) {
         bool workoutContinues = _workoutLogicService.moveToNextSet();
         if (workoutContinues) {
-          notifyListeners(); 
-          await _audioService.playExerciseAnnouncement(_workoutLogicService.currentWorkoutSet!.exercise.name);
+          notifyListeners();
+          // Play appropriate audio for the next set
+          final nextSet = _workoutLogicService.currentWorkoutSet!;
+          if (nextSet.isRestSet) {
+            await _audioService.playRestSound();
+          } else {
+            await _audioService.playExerciseAnnouncement(nextSet.exercise.name);
+          }
         } else { // Workout has ended
-          _isWorkoutFinished = true; // Set flag that workout is finished
-          notifyListeners(); // Notify listeners immediately to update UI
+          _isWorkoutFinished = true;
+          notifyListeners();
 
           // Play workout complete sound if not in survival mode and not already played
           if (!_workoutLogicService.isSurvivalMode && !_workoutCompletedAudioPlayed) {

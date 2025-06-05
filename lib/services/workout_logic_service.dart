@@ -42,14 +42,36 @@ class WorkoutLogicService {
 
   int get totalSetsInSequence => _exercisesToPerform.length;
 
+  /// Calculates the total expected duration of the workout including rest periods.
+  int get totalWorkoutDurationWithRests {
+    int totalDuration = 0;
+    for (final set in _exercisesToPerform) {
+      if (set.isRestSet) {
+        totalDuration += _baseWorkout.restDurationInSeconds ?? 0;
+      } else {
+        totalDuration += _baseWorkout.intervalTimeBetweenSets;
+      }
+    }
+    return totalDuration;
+  }
+
   /// Initializes the workout sequence based on level/mode and alternation.
   void _initializeWorkoutSequence() {
     _applyLevelModifier(); // Adjust sets based on level
 
+    List<WorkoutSet> initialSequence;
     if (_isAlternateMode) {
-      _exercisesToPerform = _generateAlternatingWorkoutSequence();
+      initialSequence = _generateAlternatingWorkoutSequence();
     } else {
-      _exercisesToPerform = _generateSequentialWorkoutSequence();
+      initialSequence = _generateSequentialWorkoutSequence();
+    }
+
+    if (_baseWorkout.enableRest == true &&
+        _baseWorkout.restDurationInSeconds != null &&
+        _baseWorkout.restDurationInSeconds! > 0) {
+      _exercisesToPerform = _insertRestPeriods(initialSequence);
+    } else {
+      _exercisesToPerform = initialSequence;
     }
   }
 
@@ -149,6 +171,49 @@ class WorkoutLogicService {
       }
     }
     return sequence;
+  }
+
+  /// Inserts rest periods into the workout sequence based on mode.
+  List<WorkoutSet> _insertRestPeriods(List<WorkoutSet> initialSequence) {
+    List<WorkoutSet> finalSequence = [];
+    final restExercise = Exercise(name: 'Rest', sets: 1, audioFileName: 'rest.wav');
+    // restDuration is not directly used, as _baseWorkout.restDurationInSeconds is accessed directly where needed.
+    // final int restDuration = _baseWorkout.restDurationInSeconds!;
+
+    if (_isAlternateMode) {
+      // In alternate mode, rest after each full round of exercises
+      int exercisesInRound = _currentLoopExercises.length;
+      for (int i = 0; i < initialSequence.length; i++) {
+        finalSequence.add(initialSequence[i]);
+        // If it's the last exercise of a round AND not the very last set of the workout
+        if ((i + 1) % exercisesInRound == 0 && (i + 1) < initialSequence.length) {
+          finalSequence.add(WorkoutSet(
+            exercise: restExercise,
+            setNumber: 1, // Rest sets can just be set 1
+            isRestSet: true,
+          ));
+        }
+      }
+    } else {
+      // In sequential mode, rest after all sets of an exercise are done
+      String? currentExerciseName;
+      for (int i = 0; i < initialSequence.length; i++) {
+        final WorkoutSet currentSet = initialSequence[i];
+        currentExerciseName ??= currentSet.exercise.name; // Use null-aware assignment
+
+        if (currentSet.exercise.name != currentExerciseName) {
+          // Exercise changed, insert rest before this new exercise
+          finalSequence.add(WorkoutSet(
+            exercise: restExercise,
+            setNumber: 1,
+            isRestSet: true,
+          ));
+          currentExerciseName = currentSet.exercise.name;
+        }
+        finalSequence.add(currentSet);
+      }
+    }
+    return finalSequence;
   }
 
   /// Helper to calculate total sets for a given level, ensuring strict increase.

@@ -24,10 +24,13 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   final TextEditingController _newExerciseRepsController =
       TextEditingController(); // New controller for reps
   final TextEditingController _intervalTimeController = TextEditingController();
+  final TextEditingController _restDurationController = TextEditingController(); // New controller for rest duration
 
   List<Exercise> _exercises = [];
   int _intervalTime = 60; // Default to 60 seconds
   String _workoutId = const Uuid().v4(); // Generate new ID for new workouts
+  bool _enableRest = false; // Default to false
+  int _restDurationInSeconds = 30; // Default rest duration
 
   // Predefined list of exercises
   final List<String> _predefinedExercises = [
@@ -55,6 +58,9 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
       _exercises = List.from(widget.workout!.exercises);
       _intervalTime = widget.workout!.intervalTimeBetweenSets;
       _intervalTimeController.text = _intervalTime.toString();
+      _enableRest = widget.workout!.enableRest ?? false;
+      _restDurationInSeconds = widget.workout!.restDurationInSeconds ?? 30;
+      _restDurationController.text = _restDurationInSeconds.toString();
       // Populate reps for existing exercises if available
       for (var exercise in _exercises) {
         if (exercise.reps != null) {
@@ -62,8 +68,9 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
         }
       }
     } else {
-      // Creating new workout, set default interval time
+      // Creating new workout, set default interval time and rest duration
       _intervalTimeController.text = _intervalTime.toString();
+      _restDurationController.text = _restDurationInSeconds.toString();
     }
     // Set initial selected exercise if editing and it's in the predefined list
     if (widget.workout != null && _exercises.isNotEmpty) {
@@ -85,6 +92,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
     _newExerciseSetsController.dispose();
     _newExerciseRepsController.dispose();
     _intervalTimeController.dispose();
+    _restDurationController.dispose(); // Dispose new controller
     super.dispose();
   }
 
@@ -140,6 +148,8 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
         exercises: _exercises,
         intervalTimeBetweenSets: _intervalTime,
         totalWorkoutTime: totalDuration,
+        enableRest: _enableRest, // Pass new field
+        restDurationInSeconds: _restDurationInSeconds, // Pass new field
       );
 
       await _userWorkoutRepository.saveUserWorkout(newWorkout); // Use repository
@@ -289,6 +299,40 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                   });
                 },
               ),
+              const SizedBox(height: 20), // Added space for new rest options
+              SwitchListTile(
+                title: const Text('Include Rest Periods'),
+                value: _enableRest,
+                onChanged: (bool value) {
+                  setState(() {
+                    _enableRest = value;
+                    // If disabling rest, clear the rest duration controller
+                    if (!value) {
+                      _restDurationController.text = _restDurationInSeconds.toString(); // Reset to default
+                    }
+                  });
+                },
+              ),
+              if (_enableRest) // Conditionally display rest duration input
+                TextFormField(
+                  controller: _restDurationController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Rest Duration (seconds)',
+                    hintText: 'e.g., 30',
+                  ),
+                  validator: (value) {
+                    if (_enableRest && (value == null || int.tryParse(value) == null || int.parse(value) <= 0)) {
+                      return 'Please enter a valid rest duration (seconds).';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    setState(() {
+                      _restDurationInSeconds = int.tryParse(value) ?? 30;
+                    });
+                  },
+                ),
               const SizedBox(height: 10), // Reduced space
               const SizedBox(height: 20),
               Text(

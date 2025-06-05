@@ -120,6 +120,21 @@ class AudioService {
     return completer.future;
   }
 
+  Future<void> playRestSound() async {
+    final completer = Completer<void>();
+    StreamSubscription? tempSubscription;
+
+    tempSubscription = _audioPlayer.onPlayerComplete.listen((event) {
+      if (!completer.isCompleted) {
+        completer.complete();
+        tempSubscription?.cancel();
+      }
+    });
+
+    await _audioPlayer.play(AssetSource('sounds/rest.wav'));
+    return completer.future;
+  }
+
   void dispose() {
     _playerCompleteSubscription?.cancel(); // Cancel the main subscription
     _audioPlayer.stop(); // Stop any ongoing playback
