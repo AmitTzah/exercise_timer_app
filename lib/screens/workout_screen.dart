@@ -79,28 +79,32 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  String _formatDurationHMS(double totalSeconds) {
-    if (totalSeconds < 0) totalSeconds = 0; // Ensure non-negative
-    final int hours = (totalSeconds ~/ 3600).toInt();
-    final int minutes = ((totalSeconds % 3600) ~/ 60).toInt();
-    final int seconds = (totalSeconds % 60).toInt();
+  String _formatDurationHMS(int totalMilliseconds) {
+    if (totalMilliseconds < 0) totalMilliseconds = 0; // Ensure non-negative
+    final int seconds = (totalMilliseconds / 1000).truncate();
+    final int hours = (seconds ~/ 3600);
+    final int minutes = ((seconds % 3600) ~/ 60);
+    final int remainingSeconds = (seconds % 60);
 
     final String hoursStr = hours.toString().padLeft(2, '0');
     final String minutesStr = minutes.toString().padLeft(2, '0');
-    final String secondsStr = seconds.toString().padLeft(2, '0');
+    final String secondsStr = remainingSeconds.toString().padLeft(2, '0');
 
     return '$hoursStr:$minutesStr:$secondsStr';
   }
 
-  String _formatDurationMS(double totalSeconds) {
-    if (totalSeconds < 0) totalSeconds = 0; // Ensure non-negative
-    final int minutes = (totalSeconds ~/ 60).toInt();
-    final int seconds = (totalSeconds % 60).toInt();
+  String _formatDurationMS(int totalMilliseconds) {
+    if (totalMilliseconds < 0) totalMilliseconds = 0; // Ensure non-negative
+    final int seconds = (totalMilliseconds / 1000).truncate();
+    final int minutes = (seconds ~/ 60);
+    final int remainingSeconds = (seconds % 60);
+    final int milliseconds = (totalMilliseconds % 1000) ~/ 10; // Get first two digits of milliseconds
 
     final String minutesStr = minutes.toString().padLeft(2, '0');
-    final String secondsStr = seconds.toString().padLeft(2, '0');
+    final String secondsStr = remainingSeconds.toString().padLeft(2, '0');
+    final String millisecondsStr = milliseconds.toString().padLeft(2, '0');
 
-    return '$minutesStr:$secondsStr';
+    return '$minutesStr:$secondsStr.$millisecondsStr';
   }
 
   @override
@@ -125,14 +129,21 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                           : 'Total Time Remaining:',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    Text(
-                      widget.selectedLevelOrMode == "survival"
-                          ? _formatDurationHMS(_workoutController.elapsedSurvivalTime)
-                          : _formatDurationHMS(_workoutController.totalTimeRemaining),
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepOrange,
-                      ),
+                    StreamBuilder<int>(
+                      stream: widget.selectedLevelOrMode == "survival"
+                          ? _workoutController.elapsedSurvivalTimeStream
+                          : _workoutController.totalTimeRemainingStream,
+                      initialData: 0,
+                      builder: (context, snapshot) {
+                        final int timeValue = snapshot.data ?? 0;
+                        return Text(
+                          _formatDurationHMS(timeValue),
+                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepOrange,
+                          ),
+                        );
+                      },
                     ),
                     Text(
                       'Total Sets: ${_workoutController.totalSetsCompleted}/${_workoutController.exercisesToPerform.length}',
@@ -171,13 +182,20 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                           ),
                         ),
                         trailing: isCurrent
-                            ? Text(
-                                _formatDurationMS(_workoutController.currentIntervalTimeRemaining),
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueAccent,
-                                  fontSize: 22,
-                                ),
+                            ? StreamBuilder<int>(
+                                stream: _workoutController.currentIntervalTimeRemainingStream,
+                                initialData: widget.workout.intervalTimeBetweenSets * 1000, // Initial data for the current interval
+                                builder: (context, snapshot) {
+                                  final int timeValue = snapshot.data ?? 0;
+                                  return Text(
+                                    _formatDurationMS(timeValue),
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blueAccent,
+                                      fontSize: 22,
+                                    ),
+                                  );
+                                },
                               )
                             : null,
                       ),

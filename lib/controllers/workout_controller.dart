@@ -5,57 +5,50 @@ import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/services/audio_service.dart';
 import 'package:exercise_timer_app/models/workout_summary.dart';
 import 'package:exercise_timer_app/models/workout_set.dart'; // Import WorkoutSet
+import 'package:stop_watch_timer/stop_watch_timer.dart'; // Import stop_watch_timer
 
 class WorkoutController extends ChangeNotifier {
   final UserWorkout _workout;
   final AudioService _audioService;
-  Timer? _timer;
   DateTime? _workoutStartTime;
 
   int _totalSetsCompleted = 0;
-  bool _isPaused = false;
   bool _workoutCompletedAudioPlayed = false;
 
   late List<WorkoutSet> _exercisesToPerform;
   int _currentOverallSetIndex = 0;
   late double _totalExpectedWorkoutDuration;
 
-  // New timing variables
-  final Stopwatch _masterStopwatch = Stopwatch(); // Was _overallWorkoutStopwatch
-  late int _currentIntervalDuration; // In seconds, from workout.intervalTimeBetweenSets
-  int _currentIntervalStartMs = 0; 
-  int _accumulatedPausedMsInInterval = 0;
-  int _lastKnownMasterTimeBeforePause = 0; // To help calculate pause duration correctly
+  // StopWatchTimer instance
+  final StopWatchTimer _stopWatchTimer = StopWatchTimer(
+    mode: StopWatchMode.countUp,
+  );
+  StreamSubscription<int>? _rawTimeSubscription; // New: Subscription for rawTime stream
 
   // Getters for UI to consume
   UserWorkout get workout => _workout;
   int get totalSetsCompleted => _totalSetsCompleted;
-  bool get isPaused => _isPaused;
+  bool get isPaused => !_stopWatchTimer.isRunning; // Use stop_watch_timer's isRunning
   List<WorkoutSet> get exercisesToPerform => _exercisesToPerform;
   int get currentOverallSetIndex => _currentOverallSetIndex;
   double get totalExpectedWorkoutDuration => _totalExpectedWorkoutDuration;
 
-  // Calculated getters for time
-  double get currentIntervalTimeRemaining {
-    if (_isPaused) { // If paused, show time remaining at the point of pause
-      final double activeTimeBeforePause = (_lastKnownMasterTimeBeforePause - _currentIntervalStartMs - _accumulatedPausedMsInInterval).toDouble() / 1000.0;
-      final double remaining = _currentIntervalDuration - activeTimeBeforePause;
-      return remaining > 0 ? remaining : 0.0;
-    }
-    final double elapsedInCurrentIntervalActiveMs = (_masterStopwatch.elapsedMilliseconds - _currentIntervalStartMs - _accumulatedPausedMsInInterval).toDouble();
-    final double remainingSeconds = _currentIntervalDuration - (elapsedInCurrentIntervalActiveMs / 1000.0);
-    return remainingSeconds > 0 ? remainingSeconds : 0.0;
-  }
+  // Calculated getters for time using StopWatchTimer's rawTime stream
+  Stream<int> get currentIntervalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
+    final int elapsedInCurrentIntervalMs = value - (_currentOverallSetIndex * _workout.intervalTimeBetweenSets * 1000);
+    final int remainingMs = (_workout.intervalTimeBetweenSets * 1000) - elapsedInCurrentIntervalMs;
+    return remainingMs > 0 ? remainingMs : 0;
+  });
 
-  double get totalTimeRemaining {
-    if (_selectedLevelOrMode == "survival") return 0.0; // Not applicable for survival
-    final double remaining = _totalExpectedWorkoutDuration - (_masterStopwatch.elapsedMilliseconds / 1000.0);
-    return remaining > 0 ? remaining : 0.0;
-  }
+  Stream<int> get totalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
+    if (_selectedLevelOrMode == "survival") return 0; // Not applicable for survival
+    final int remainingMs = (_totalExpectedWorkoutDuration * 1000).round() - value;
+    return remainingMs > 0 ? remainingMs : 0;
+  });
 
-  double get totalWorkoutDuration => _masterStopwatch.elapsedMilliseconds / 1000.0;
+  Stream<int> get totalWorkoutDurationStream => _stopWatchTimer.rawTime;
   DateTime? get workoutStartTime => _workoutStartTime; // Expose workout start time
-  double get elapsedSurvivalTime => _masterStopwatch.elapsedMilliseconds / 1000.0;
+  Stream<int> get elapsedSurvivalTimeStream => _stopWatchTimer.rawTime;
 
   WorkoutSet? get currentWorkoutSet =>
       _exercisesToPerform.isNotEmpty &&
@@ -81,7 +74,6 @@ class WorkoutController extends ChangeNotifier {
        _isAlternateMode = isAlternateMode,
        _selectedLevelOrMode = selectedLevelOrMode {
     _workoutStartTime = DateTime.now();
-    _currentIntervalDuration = _workout.intervalTimeBetweenSets; // Initialize interval duration
     _workoutCompletedAudioPlayed = false; // Ensure it's reset for each new workout
 
     _applyLevelModifier(); // Adjust sets based on level
@@ -100,11 +92,9 @@ class WorkoutController extends ChangeNotifier {
     }
 
     if (_exercisesToPerform.isNotEmpty) {
-      _masterStopwatch.start();
-      _currentIntervalStartMs = _masterStopwatch.elapsedMilliseconds;
-      _accumulatedPausedMsInInterval = 0;
-      debugPrint('Master Stopwatch started. Elapsed: ${_masterStopwatch.elapsedMilliseconds}ms');
-      _startTimer();
+      debugPrint('StopWatchTimer started.');
+      _stopWatchTimer.onExecute.add(StopWatchExecute.start);
+      _startTimerListener(); // Start listening to the timer
     } else {
       _finishWorkoutInternal(); // Immediately finish if no exercises
     }
@@ -166,61 +156,60 @@ class WorkoutController extends ChangeNotifier {
     }
   }
 
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) async {
-      if (_isPaused) return;
+  void _startTimerListener() {
+    // Cancel any existing subscription to be safe, though unlikely here
+    _rawTimeSubscription?.cancel(); 
+    _rawTimeSubscription = _stopWatchTimer.rawTime.listen((value) async {
+      if (!_stopWatchTimer.isRunning) return; // Guard against late events after explicit stop
 
-      // Check if current interval is complete
-      final int elapsedInCurrentIntervalActiveMs = _masterStopwatch.elapsedMilliseconds - _currentIntervalStartMs - _accumulatedPausedMsInInterval;
-      if (elapsedInCurrentIntervalActiveMs >= _currentIntervalDuration * 1000) {
-        bool workoutContinues = await _moveToNextSetAndPrepareInterval(); // This will update _currentIntervalStartMs and reset _accumulatedPausedMsInInterval
+      final int elapsedInCurrentIntervalMs = value - (_currentOverallSetIndex * _workout.intervalTimeBetweenSets * 1000);
+
+      if (elapsedInCurrentIntervalMs >= _workout.intervalTimeBetweenSets * 1000) {
+        bool workoutContinues = await _moveToNextSetAndPrepareInterval();
         if (workoutContinues) {
-          notifyListeners(); // Update UI for the new set and its freshly started timer
-          // Play "Next Set" sound followed by the next exercise name
+          notifyListeners(); 
           await _audioService.playExerciseAnnouncement(_exercisesToPerform[_currentOverallSetIndex].exercise.name);
         } else {
           // Workout finished naturally
-          _timer?.cancel();
-          _masterStopwatch.stop();
-          debugPrint('Workout finished naturally. Master Stopwatch stopped. Elapsed: ${_masterStopwatch.elapsedMilliseconds}ms');
+          await _rawTimeSubscription?.cancel(); // Cancel subscription first
+          _rawTimeSubscription = null; // Clear the reference
+          
+          if (_stopWatchTimer.isRunning) { // Check if timer is still running before stopping
+              _stopWatchTimer.onExecute.add(StopWatchExecute.stop);
+              debugPrint('Workout finished naturally. StopWatchTimer stopped.');
+          } else {
+              debugPrint('Workout finished naturally. StopWatchTimer was already stopped.');
+          }
           _finishWorkoutInternal();
-          return; // Exit early, no more operations on disposed controller
         }
       }
-
-      // Only update and notify if the workout is still active (timer not cancelled by finishInternal)
-      if (_timer != null && _timer!.isActive) {
-        notifyListeners();
+      // Only notify if the subscription is still active, to prevent calls during disposal
+      if (_rawTimeSubscription != null) {
+          notifyListeners(); 
       }
     });
   }
 
   void pauseWorkout() {
-    if (!_isPaused) { // Only execute if not already paused
-      _masterStopwatch.stop();
-      _lastKnownMasterTimeBeforePause = _masterStopwatch.elapsedMilliseconds;
-      _isPaused = true;
-      notifyListeners();
-    }
+    _stopWatchTimer.onExecute.add(StopWatchExecute.stop);
+    notifyListeners();
   }
 
   void resumeWorkout() {
-    if (_isPaused) { // Only execute if paused
-      _isPaused = false;
-      // Simply restart the master stopwatch. 
-      // The _accumulatedPausedMsInInterval is not being updated in this simplified version,
-      // which means pauses will effectively shorten the perceived interval if not handled more robustly.
-      // This change focuses on the reported type error.
-      _masterStopwatch.start();
-      notifyListeners();
-    }
+    _stopWatchTimer.onExecute.add(StopWatchExecute.start);
+    notifyListeners();
   }
 
-  void finishWorkout() {
-    _timer?.cancel();
-    _isPaused = true; // Ensure UI reflects paused state
-    _masterStopwatch.stop();
-    debugPrint('Workout manually finished. Master Stopwatch stopped. Elapsed: ${_masterStopwatch.elapsedMilliseconds}ms');
+  void finishWorkout() async { // Make async to await cancellation
+    await _rawTimeSubscription?.cancel();
+    _rawTimeSubscription = null;
+    
+    if (_stopWatchTimer.isRunning) {
+        _stopWatchTimer.onExecute.add(StopWatchExecute.stop);
+        debugPrint('Workout manually finished. StopWatchTimer stopped.');
+    } else {
+        debugPrint('Workout manually finished. StopWatchTimer was already stopped.');
+    }
     notifyListeners();
     _finishWorkoutInternal();
   }
@@ -263,6 +252,9 @@ class WorkoutController extends ChangeNotifier {
     } else {
       if (_selectedLevelOrMode == "survival") {
         _currentOverallSetIndex = 0; // Loop back
+        // Reset the timer to simulate continuous looping for survival mode
+        _stopWatchTimer.onExecute.add(StopWatchExecute.reset);
+        _stopWatchTimer.onExecute.add(StopWatchExecute.start);
       } else {
         // End workout for non-survival modes
         if (!_workoutCompletedAudioPlayed) {
@@ -271,11 +263,6 @@ class WorkoutController extends ChangeNotifier {
         }
         workoutContinues = false;
       }
-    }
-
-    if (workoutContinues) {
-      _currentIntervalStartMs = _masterStopwatch.elapsedMilliseconds;
-      _accumulatedPausedMsInInterval = 0; // Reset for the new interval
     }
     return workoutContinues;
   }
@@ -305,11 +292,11 @@ class WorkoutController extends ChangeNotifier {
       finalPerformedSets = _exercisesToPerform.sublist(0, wasStoppedPrematurely ? _totalSetsCompleted : _exercisesToPerform.length);
     }
 
-    debugPrint('Creating WorkoutSummary. totalWorkoutDuration (getter): $totalWorkoutDuration seconds');
+    debugPrint('Creating WorkoutSummary. totalWorkoutDuration: ${_stopWatchTimer.rawTime.value / 1000.0} seconds');
     final summary = WorkoutSummary(
       date: _workoutStartTime!,
       performedSets: finalPerformedSets,
-      totalDurationInSeconds: totalWorkoutDuration.round(), // Use getter for total duration
+      totalDurationInSeconds: (_stopWatchTimer.rawTime.value / 1000.0).round(), // Use rawTime.value
       workoutName: _workout.name,
       workoutLevel: _selectedLevelOrMode is int ? _selectedLevelOrMode : 1, // Default to 1 if survival
       isSurvivalMode: _selectedLevelOrMode == "survival",
@@ -345,10 +332,10 @@ class WorkoutController extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
-    _timer?.cancel();
-    _masterStopwatch.stop();
-    // _audioService.dispose(); // AudioService is a singleton, disposed by Provider at app shutdown
+  void dispose() async {
+    await _rawTimeSubscription?.cancel(); // Cancel subscription
+    _rawTimeSubscription = null; // Clear the reference
+    await _stopWatchTimer.dispose();
     super.dispose();
   }
 }
