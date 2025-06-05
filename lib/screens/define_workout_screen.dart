@@ -130,6 +130,29 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
     return totalSets * _intervalTime;
   }
 
+  String _formatDuration(int totalSeconds) {
+    if (totalSeconds < 0) {
+      return 'N/A'; // Or throw an error, depending on desired behavior for negative input
+    }
+
+    int hours = totalSeconds ~/ 3600;
+    int minutes = (totalSeconds % 3600) ~/ 60;
+    int seconds = totalSeconds % 60;
+
+    List<String> parts = [];
+    if (hours > 0) {
+      parts.add('${hours}h');
+    }
+    if (minutes > 0 || hours > 0) { // Show minutes if there are hours, or if minutes are present
+      parts.add('${minutes}m');
+    }
+    if (seconds > 0 || (hours == 0 && minutes == 0)) { // Show seconds if there are no hours/minutes, or if seconds are present
+      parts.add('${seconds}s');
+    }
+
+    return parts.join(' ');
+  }
+
   Future<void> _saveWorkout() async {
     if (_formKey.currentState!.validate()) {
       if (_exercises.isEmpty) {
@@ -336,7 +359,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
               const SizedBox(height: 10), // Reduced space
               const SizedBox(height: 20),
               Text(
-                'Total Workout Duration: ${_calculateTotalDuration()} seconds',
+                'Total Workout Duration: ${_formatDuration(_calculateTotalDuration())}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
