@@ -304,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             ElevatedButton.icon( // Play button
                               icon: const Icon(Icons.play_arrow),
-                              label: const Text("Play"),
+                              label: const Text("Start"),
                               onPressed: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
