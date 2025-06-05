@@ -35,20 +35,14 @@ class WorkoutController extends ChangeNotifier {
 
   // Calculated getters for time
   double get currentIntervalTimeRemaining {
-    if (_intervalStopwatch.isRunning) {
-      final double remaining = _currentIntervalDuration - (_intervalStopwatch.elapsedMilliseconds / 1000.0);
-      return remaining > 0 ? remaining : 0.0;
-    }
-    return 0.0; // Or the last known value if paused/stopped
+    final double remaining = _currentIntervalDuration - (_intervalStopwatch.elapsedMilliseconds / 1000.0);
+    return remaining > 0 ? remaining : 0.0;
   }
 
   double get totalTimeRemaining {
     if (_selectedLevelOrMode == "survival") return 0.0; // Not applicable for survival
-    if (_overallWorkoutStopwatch.isRunning) {
-      final double remaining = _totalExpectedWorkoutDuration - (_overallWorkoutStopwatch.elapsedMilliseconds / 1000.0);
-      return remaining > 0 ? remaining : 0.0;
-    }
-    return 0.0; // Or the last known value if paused/stopped
+    final double remaining = _totalExpectedWorkoutDuration - (_overallWorkoutStopwatch.elapsedMilliseconds / 1000.0);
+    return remaining > 0 ? remaining : 0.0;
   }
 
   double get totalWorkoutDuration => _overallWorkoutStopwatch.elapsedMilliseconds / 1000.0;
