@@ -141,6 +141,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  String _formatTime(int totalSeconds, {bool includeHours = false}) {
+    final int hours = totalSeconds ~/ 3600;
+    final int minutes = (totalSeconds % 3600) ~/ 60;
+    final int seconds = totalSeconds % 60;
+
+    String formattedTime = '';
+    if (includeHours && hours > 0) {
+      formattedTime += '${hours}h ';
+    }
+    formattedTime += '${minutes}m ${seconds}s';
+    return formattedTime.trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -188,9 +201,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         // 2. Workout Details Row
                         Row(
                           children: [
-                            Text('Total Time: ${workout.totalWorkoutTime}s'),
+                            Text('Total Time: ${_formatTime(workout.totalWorkoutTime, includeHours: true)}'),
                             const SizedBox(width: 16),
-                            Text('Interval Time: ${workout.intervalTimeBetweenSets}s'),
+                            Text('Interval Time: ${_formatTime(workout.intervalTimeBetweenSets)}'),
                           ],
                         ),
                         const SizedBox(height: 8),
