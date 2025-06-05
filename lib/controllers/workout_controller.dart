@@ -167,7 +167,9 @@ class WorkoutController extends ChangeNotifier {
         if (workoutContinues) {
           _intervalStopwatch.reset();
           _intervalStopwatch.start();
+          notifyListeners(); // Update UI for the new set and its freshly started timer
           // Play "Next Set" sound followed by the next exercise name
+          // Audio playback now occurs while the new set's timer is already counting down.
           await _audioService.playExerciseAnnouncement(_exercisesToPerform[_currentOverallSetIndex].exercise.name);
         } else {
           // Workout finished naturally
@@ -246,13 +248,11 @@ class WorkoutController extends ChangeNotifier {
 
     if (_currentOverallSetIndex < _exercisesToPerform.length - 1) {
       _currentOverallSetIndex++;
-      notifyListeners(); // Notify to update current exercise display
       return true;
     } else {
       if (_selectedLevelOrMode == "survival") {
         // Loop back to the beginning for survival mode
         _currentOverallSetIndex = 0;
-        notifyListeners();
         return true;
       } else {
         // End workout for non-survival modes
