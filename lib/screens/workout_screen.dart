@@ -5,6 +5,7 @@ import 'package:exercise_timer_app/services/audio_service.dart';
 import 'package:exercise_timer_app/screens/workout_summary_display_screen.dart';
 import 'package:exercise_timer_app/controllers/workout_controller.dart';
 import 'package:exercise_timer_app/models/workout_summary.dart';
+import 'package:stop_watch_timer/stop_watch_timer.dart';
 
 class WorkoutScreen extends StatefulWidget {
   final UserWorkout workout;
@@ -79,33 +80,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  String _formatDurationHMS(int totalMilliseconds) {
-    if (totalMilliseconds < 0) totalMilliseconds = 0; // Ensure non-negative
-    final int seconds = (totalMilliseconds / 1000).truncate();
-    final int hours = (seconds ~/ 3600);
-    final int minutes = ((seconds % 3600) ~/ 60);
-    final int remainingSeconds = (seconds % 60);
-
-    final String hoursStr = hours.toString().padLeft(2, '0');
-    final String minutesStr = minutes.toString().padLeft(2, '0');
-    final String secondsStr = remainingSeconds.toString().padLeft(2, '0');
-
-    return '$hoursStr:$minutesStr:$secondsStr';
-  }
-
-  String _formatDurationMS(int totalMilliseconds) {
-    if (totalMilliseconds < 0) totalMilliseconds = 0; // Ensure non-negative
-    final int seconds = (totalMilliseconds / 1000).truncate();
-    final int minutes = (seconds ~/ 60);
-    final int remainingSeconds = (seconds % 60);
-    final int milliseconds = (totalMilliseconds % 1000) ~/ 10; // Get first two digits of milliseconds
-
-    final String minutesStr = minutes.toString().padLeft(2, '0');
-    final String secondsStr = remainingSeconds.toString().padLeft(2, '0');
-    final String millisecondsStr = milliseconds.toString().padLeft(2, '0');
-
-    return '$minutesStr:$secondsStr.$millisecondsStr';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +111,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       builder: (context, snapshot) {
                         final int timeValue = snapshot.data ?? 0;
                         return Text(
-                          _formatDurationHMS(timeValue),
+                          StopWatchTimer.getDisplayTime(
+                            timeValue,
+                            hours: true,
+                            minute: true,
+                            second: true,
+                            milliSecond: false,
+                          ),
                           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: Colors.deepOrange,
@@ -188,7 +168,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                 builder: (context, snapshot) {
                                   final int timeValue = snapshot.data ?? 0;
                                   return Text(
-                                    _formatDurationMS(timeValue),
+                                    StopWatchTimer.getDisplayTime(
+                                      timeValue,
+                                      hours: false,
+                                      minute: true,
+                                      second: true,
+                                      milliSecond: true,
+                                    ),
                                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.blueAccent,
