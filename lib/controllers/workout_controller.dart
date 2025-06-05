@@ -12,6 +12,7 @@ class WorkoutController extends ChangeNotifier {
   final AudioService _audioService;
   DateTime? _workoutStartTime;
   bool _workoutCompletedAudioPlayed = false; // Re-add this field
+  bool _isWorkoutFinished = false; // New: Flag to indicate if workout is finished
   int _currentRawTimeMs = 0; // New: To store the latest raw time from the timer
 
   final StopWatchTimer _stopWatchTimer = StopWatchTimer(
@@ -29,6 +30,7 @@ class WorkoutController extends ChangeNotifier {
   double get totalExpectedWorkoutDuration => _workoutLogicService.totalSetsInSequence * _workout.intervalTimeBetweenSets.toDouble();
 
   Stream<int> get currentIntervalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
+    if (_isWorkoutFinished) return 0; // If workout is finished, remaining time is 0
     // In survival mode, currentOverallSetIndex resets to 0, causing incorrect elapsed time calculation for display.
     // totalSetsCompleted correctly tracks the cumulative number of sets finished.
     final int elapsedInCurrentIntervalMs = value - (_workoutLogicService.totalSetsCompleted * _workout.intervalTimeBetweenSets * 1000);
@@ -38,6 +40,7 @@ class WorkoutController extends ChangeNotifier {
 
   Stream<int> get totalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
     if (_workoutLogicService.isSurvivalMode) return 0;
+    if (_isWorkoutFinished) return 0; // If workout is finished, remaining time is 0
     final int remainingMs = (totalExpectedWorkoutDuration * 1000).round() - value;
     return remainingMs > 0 ? remainingMs : 0;
   });
@@ -71,6 +74,7 @@ class WorkoutController extends ChangeNotifier {
       _stopWatchTimer.onStartTimer(); // Updated: Use new start method
       _startTimerListener();
     } else {
+      _isWorkoutFinished = true; // Set flag if workout ends immediately
       _finishWorkoutInternal();
     }
   }
@@ -91,6 +95,9 @@ class WorkoutController extends ChangeNotifier {
           notifyListeners(); 
           await _audioService.playExerciseAnnouncement(_workoutLogicService.currentWorkoutSet!.exercise.name);
         } else { // Workout has ended
+          _isWorkoutFinished = true; // Set flag that workout is finished
+          notifyListeners(); // Notify listeners immediately to update UI
+
           // Play workout complete sound if not in survival mode and not already played
           if (!_workoutLogicService.isSurvivalMode && !_workoutCompletedAudioPlayed) {
             _workoutCompletedAudioPlayed = true; // Set flag
@@ -110,7 +117,7 @@ class WorkoutController extends ChangeNotifier {
           _finishWorkoutInternal();
         }
       }
-      if (_rawTimeSubscription != null) {
+      if (_rawTimeSubscription != null && !_isWorkoutFinished) { // Only notify if not already finished
           notifyListeners(); 
       }
     });
@@ -127,6 +134,9 @@ class WorkoutController extends ChangeNotifier {
   }
 
   void finishWorkout() async {
+    _isWorkoutFinished = true; // Set flag that workout is finished
+    notifyListeners(); // Notify listeners immediately to update UI
+
     await _rawTimeSubscription?.cancel();
     _rawTimeSubscription = null;
     
@@ -136,7 +146,6 @@ class WorkoutController extends ChangeNotifier {
     } else {
         debugPrint('Workout manually finished. StopWatchTimer was already stopped.');
     }
-    notifyListeners();
     _finishWorkoutInternal();
   }
 
