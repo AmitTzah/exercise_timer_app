@@ -125,6 +125,70 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
     });
   }
 
+  void _editExercise(int index) {
+    final Exercise exerciseToEdit = _exercises[index];
+    final TextEditingController setsController =
+        TextEditingController(text: exerciseToEdit.sets.toString());
+    final TextEditingController repsController =
+        TextEditingController(text: exerciseToEdit.reps?.toString() ?? '');
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit ${exerciseToEdit.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: setsController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Sets'),
+              ),
+              TextField(
+                controller: repsController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Reps'),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              child: const Text('Save'),
+              onPressed: () {
+                final int? newSets = int.tryParse(setsController.text.trim());
+                final int? newReps = int.tryParse(repsController.text.trim());
+
+                if (newSets != null && newSets > 0) {
+                  setState(() {
+                    _exercises[index] = Exercise(
+                      name: exerciseToEdit.name,
+                      sets: newSets,
+                      reps: newReps,
+                    );
+                  });
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid number of sets.'),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   int _calculateTotalDuration() {
     int totalSets = _exercises.fold(0, (sum, exercise) => sum + exercise.sets);
     return totalSets * _intervalTime;
@@ -279,25 +343,44 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                   ),
                 ],
               ),
-              ListView.builder(
+              ReorderableListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _exercises.length,
                 itemBuilder: (context, index) {
                   final exercise = _exercises[index];
                   return Card(
+                    key: ValueKey(exercise.name + index.toString()), // Unique key for reordering
                     margin: const EdgeInsets.symmetric(vertical: 4.0),
                     child: ListTile(
                       title: Text(exercise.name),
                       subtitle: Text(
                         'Sets: ${exercise.sets}${exercise.reps != null ? ' | Reps: ${exercise.reps}' : ''}', // Display reps if available
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _removeExercise(index),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _editExercise(index),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _removeExercise(index),
+                          ),
+                        ],
                       ),
                     ),
                   );
+                },
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex > oldIndex) {
+                      newIndex -= 1;
+                    }
+                    final Exercise item = _exercises.removeAt(oldIndex);
+                    _exercises.insert(newIndex, item);
+                  });
                 },
               ),
               const SizedBox(height: 20),
