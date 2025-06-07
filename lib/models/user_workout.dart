@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'package:exercise_timer_app/models/exercise.dart';
+import 'package:exercise_timer_app/models/workout_item.dart'; // Import the new workout_item.dart
 
 part 'user_workout.g.dart';
 
@@ -12,39 +12,27 @@ class UserWorkout extends HiveObject {
   String name;
 
   @HiveField(2)
-  List<Exercise> exercises;
+  List<WorkoutItem> items; // Changed from List<Exercise> to List<WorkoutItem>
 
   @HiveField(3)
-  int intervalTimeBetweenSets;
-
-  @HiveField(4)
   int totalWorkoutTime; // in seconds
 
-  @HiveField(5) // Re-using field 5, previously alternateSets
+  @HiveField(4) // Re-using field 4
   bool? selectedAlternateSets; // Nullable, default to false if null
 
-  @HiveField(6) // New field for selected level
+  @HiveField(5) // Re-using field 5
   int? selectedLevel; // Nullable, default to 1 if null
 
-  @HiveField(7) // New field for survival mode selection
+  @HiveField(6) // Re-using field 6
   bool? selectedSurvivalMode; // Nullable, default to false if null
-
-  @HiveField(8) // New field for enabling rest periods
-  bool? enableRest; // Nullable, default to false if null
-
-  @HiveField(9) // New field for rest duration
-  int? restDurationInSeconds; // Nullable, default to 30 if null
 
   UserWorkout({
     required this.id,
     required this.name,
-    required this.exercises,
-    required this.intervalTimeBetweenSets,
+    required this.items, // Changed from exercises to items
     required this.totalWorkoutTime,
     this.selectedAlternateSets,
     this.selectedLevel,
     this.selectedSurvivalMode,
-    this.enableRest, // Add to constructor
-    this.restDurationInSeconds, // Add to constructor
   });
 }

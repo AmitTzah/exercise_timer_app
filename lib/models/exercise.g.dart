@@ -21,13 +21,15 @@ class ExerciseAdapter extends TypeAdapter<Exercise> {
       sets: fields[1] as int,
       reps: fields[2] as int?,
       audioFileName: fields[3] as String?,
+      workTimeInSeconds: fields[4] as int,
+      restTimeInSeconds: fields[5] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Exercise obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -35,7 +37,11 @@ class ExerciseAdapter extends TypeAdapter<Exercise> {
       ..writeByte(2)
       ..write(obj.reps)
       ..writeByte(3)
-      ..write(obj.audioFileName);
+      ..write(obj.audioFileName)
+      ..writeByte(4)
+      ..write(obj.workTimeInSeconds)
+      ..writeByte(5)
+      ..write(obj.restTimeInSeconds);
   }
 
   @override

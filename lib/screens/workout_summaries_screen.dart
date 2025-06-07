@@ -112,9 +112,8 @@ class _WorkoutSummariesScreenState extends State<WorkoutSummariesScreen> {
                         if (summary.workoutLevel > 1) Text('Level: ${summary.workoutLevel}'),
                         if (summary.isSurvivalMode) const Text('Mode: Survival'),
                         if (summary.isAlternatingSets) const Text('Sets Order: Alternating'),
-                        Text('Interval: ${summary.intervalTime}s'),
                         Text('Total Sets Performed: ${summary.totalSets}'),
-                        if (summary.wasStoppedPrematurely) const Text('Status: Stopped Early'), // Display status
+                        if (summary.wasStoppedPrematurely) const Text('Status: Stopped Early'),
                       ],
                     ),
                     children: [
@@ -124,15 +123,29 @@ class _WorkoutSummariesScreenState extends State<WorkoutSummariesScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Exercises Performed:',
+                              'Workout Sequence Performed:',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 8),
-                            ...summary.performedSets.map((workoutSet) { // Use performedSets
-                              return Text(
-                                '- ${workoutSet.exercise.name} (Set ${workoutSet.setNumber})${workoutSet.exercise.reps != null ? ', ${workoutSet.exercise.reps} reps' : ''}',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              );
+                            ...summary.performedSets.map((workoutSet) {
+                              if (workoutSet.isRestBlock) {
+                                return Text(
+                                  '- Rest Block (${workoutSet.restBlockDuration}s)',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
+                                );
+                              } else if (workoutSet.isRestSet) {
+                                return Text(
+                                  '- Rest (after ${workoutSet.exercise.name} Set ${workoutSet.setNumber}) Duration: ${workoutSet.exercise.restTimeInSeconds ?? 0}s',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
+                                );
+                              } else {
+                                return Text(
+                                  '- ${workoutSet.exercise.name} (Set ${workoutSet.setNumber} / ${workoutSet.exercise.sets})'
+                                  '${workoutSet.exercise.reps != null ? ', Reps: ${workoutSet.exercise.reps}' : ''}'
+                                  ' | Work: ${workoutSet.exercise.workTimeInSeconds}s',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                );
+                              }
                             }),
                           ],
                         ),

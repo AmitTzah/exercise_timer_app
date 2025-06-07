@@ -108,7 +108,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 exercisesToPerform: _workoutController.exercisesToPerform,
                 currentOverallSetIndex: _workoutController.currentOverallSetIndex,
                 currentIntervalTimeRemainingStream: _workoutController.currentIntervalTimeRemainingStream,
-                workout: widget.workout,
               ),
               WorkoutControls(
                 isPaused: _workoutController.isPaused,

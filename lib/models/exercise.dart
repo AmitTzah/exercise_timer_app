@@ -16,5 +16,18 @@ class Exercise extends HiveObject {
   @HiveField(3) // New field for custom audio file name
   String? audioFileName; // Optional: custom audio file for this exercise
 
-  Exercise({required this.name, required this.sets, this.reps, this.audioFileName}); // Added reps and audioFileName to constructor
+  @HiveField(4) // New field for work time per set
+  int workTimeInSeconds;
+
+  @HiveField(5) // New field for rest time after each set (optional)
+  int? restTimeInSeconds;
+
+  Exercise({
+    required this.name,
+    required this.sets,
+    this.reps,
+    this.audioFileName,
+    required this.workTimeInSeconds,
+    this.restTimeInSeconds,
+  });
 }

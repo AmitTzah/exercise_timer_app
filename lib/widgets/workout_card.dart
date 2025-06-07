@@ -4,6 +4,7 @@ import 'package:exercise_timer_app/repositories/user_workout_repository.dart';
 import 'package:exercise_timer_app/screens/define_workout_screen.dart';
 import 'package:exercise_timer_app/screens/workout_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:exercise_timer_app/models/workout_item.dart'; // Import WorkoutItem
 
 class WorkoutCard extends StatefulWidget {
   final UserWorkout workout;
@@ -57,25 +58,31 @@ class _WorkoutCardState extends State<WorkoutCard> {
             const SizedBox(height: 8),
 
             // 2. Workout Details Row
-            Row(
-              children: [
-                Text('Total Time: ${widget.formatTime(widget.workout.totalWorkoutTime, includeHours: true)}'),
-                const SizedBox(width: 16),
-                Text('Interval Time: ${widget.formatTime(widget.workout.intervalTimeBetweenSets)}'),
-              ],
-            ),
+            Text('Total Time: ${widget.formatTime(widget.workout.totalWorkoutTime, includeHours: true)}'),
             const SizedBox(height: 8),
 
-            // 3. Exercises List
+            // 3. Workout Items List
             Text(
-              'Exercises:',
+              'Workout Sequence:',
               style: Theme.of(context).textTheme.titleSmall,
             ),
-            ...widget.workout.exercises.map(
-              (e) => Text(
-                '  - ${e.name} (${e.sets}${e.reps != null ? 'x${e.reps}' : ''})', // Display sets and reps
-                style: const TextStyle(fontSize: 14.0),
-              ),
+            ...widget.workout.items.map(
+              (item) {
+                if (item is ExerciseItem) {
+                  final e = item.exercise;
+                  return Text(
+                    '  - ${e.name} (${e.sets}${e.reps != null ? 'x${e.reps}' : ''}) '
+                    '[Work: ${e.workTimeInSeconds}s${e.restTimeInSeconds != null ? ', Rest: ${e.restTimeInSeconds}s' : ''}]',
+                    style: const TextStyle(fontSize: 14.0),
+                  );
+                } else if (item is RestBlockItem) {
+                  return Text(
+                    '  - Rest Block (${item.durationInSeconds}s)',
+                    style: const TextStyle(fontSize: 14.0, fontStyle: FontStyle.italic),
+                  );
+                }
+                return Container(); // Should not happen
+              },
             ),
             const SizedBox(height: 12),
 
@@ -89,7 +96,7 @@ class _WorkoutCardState extends State<WorkoutCard> {
                     widget.alternateModeSelections[widget.workout.id] = newValue ?? false;
                     widget.workout.selectedAlternateSets = newValue ?? false;
                     await _userWorkoutRepository.saveUserWorkout(widget.workout);
-                    widget.onSelectionsChanged(); // Notify parent
+                    widget.onSelectionsChanged();
                   },
                 ),
                 const Text('Alternate Sets'),
@@ -104,7 +111,7 @@ class _WorkoutCardState extends State<WorkoutCard> {
                     widget.survivalModeSelections[widget.workout.id] = newValue ?? false;
                     widget.workout.selectedSurvivalMode = newValue ?? false;
                     await _userWorkoutRepository.saveUserWorkout(widget.workout);
-                    widget.onSelectionsChanged(); // Notify parent
+                    widget.onSelectionsChanged();
                   },
                 ),
                 const Text('Survival Mode'),
@@ -125,7 +132,7 @@ class _WorkoutCardState extends State<WorkoutCard> {
                         widget.levelSelections[widget.workout.id] = selectedValue;
                         widget.workout.selectedLevel = selectedValue;
                         await _userWorkoutRepository.saveUserWorkout(widget.workout);
-                        widget.onSelectionsChanged(); // Notify parent
+                        widget.onSelectionsChanged();
                       }
                     },
                     child: Container(

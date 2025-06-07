@@ -8,7 +8,6 @@ class WorkoutSetList extends StatelessWidget {
   final List<WorkoutSet> exercisesToPerform;
   final int currentOverallSetIndex;
   final Stream<int> currentIntervalTimeRemainingStream;
-  final UserWorkout workout; // Pass the workout to access restDurationInSeconds
 
   const WorkoutSetList({
     super.key,
@@ -16,7 +15,6 @@ class WorkoutSetList extends StatelessWidget {
     required this.exercisesToPerform,
     required this.currentOverallSetIndex,
     required this.currentIntervalTimeRemainingStream,
-    required this.workout,
   });
 
   @override
@@ -36,7 +34,9 @@ class WorkoutSetList extends StatelessWidget {
                   ? const Icon(Icons.arrow_right, color: Colors.blueAccent, size: 30)
                   : null,
               title: Text(
-                workoutSet.isRestSet ? 'Rest' : workoutSet.exercise.name,
+                workoutSet.isRestSet
+                    ? (workoutSet.isRestBlock ? 'Rest Block' : 'Rest')
+                    : workoutSet.exercise.name,
                 style: TextStyle(
                   fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                   color: isCurrent ? Colors.blueAccent : Colors.black,
@@ -45,14 +45,15 @@ class WorkoutSetList extends StatelessWidget {
               ),
               subtitle: workoutSet.isRestSet
                   ? Text(
-                      'Duration: ${workout.restDurationInSeconds ?? 0} seconds',
+                      'Duration: ${workoutSet.isRestBlock ? workoutSet.restBlockDuration : (workoutSet.exercise.restTimeInSeconds ?? 0)} seconds',
                       style: TextStyle(
                         color: isCurrent ? Colors.blueAccent : Colors.grey[600],
                         fontSize: 16,
                       ),
                     )
                   : Text(
-                      'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}${workoutSet.exercise.reps != null ? ', Reps: ${workoutSet.exercise.reps}' : ''}',
+                      'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}${workoutSet.exercise.reps != null ? ', Reps: ${workoutSet.exercise.reps}' : ''}'
+                      ' | Work: ${workoutSet.exercise.workTimeInSeconds}s',
                       style: TextStyle(
                         color: isCurrent ? Colors.blueAccent : Colors.grey[600],
                         fontSize: 16,
@@ -62,8 +63,8 @@ class WorkoutSetList extends StatelessWidget {
                   ? StreamBuilder<int>(
                       stream: currentIntervalTimeRemainingStream,
                       initialData: workoutSet.isRestSet
-                          ? (workout.restDurationInSeconds ?? 0) * 1000
-                          : workout.intervalTimeBetweenSets * 1000,
+                          ? (workoutSet.isRestBlock ? workoutSet.restBlockDuration! : (workoutSet.exercise.restTimeInSeconds ?? 0)) * 1000
+                          : workoutSet.exercise.workTimeInSeconds * 1000,
                       builder: (context, snapshot) {
                         final int timeValue = snapshot.data ?? 0;
                         return Text(

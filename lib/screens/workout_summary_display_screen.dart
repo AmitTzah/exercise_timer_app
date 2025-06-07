@@ -66,25 +66,44 @@ class WorkoutSummaryDisplayScreen extends StatelessWidget {
             _buildSummaryRow(context, 'Total Duration:', _formatDuration(summary.totalDurationInSeconds)),
             _buildSummaryRow(context, 'Workout Level:', summary.workoutLevel.toString()),
             _buildSummaryRow(context, 'Alternating Sets:', summary.isAlternatingSets ? 'Yes' : 'No'),
-            _buildSummaryRow(context, 'Interval Time:', '${summary.intervalTime} seconds'),
             _buildSummaryRow(context, 'Total Sets Performed:', summary.totalSets.toString()),
             const SizedBox(height: 20),
             Text(
-              'Exercises Performed:',
+              'Workout Sequence Performed:',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: summary.performedSets.length, // Use performedSets
+                itemCount: summary.performedSets.length,
                 itemBuilder: (context, index) {
-                  final workoutSet = summary.performedSets[index]; // Get WorkoutSet
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: Text(
-                      '- ${workoutSet.exercise.name} (Set ${workoutSet.setNumber})${workoutSet.exercise.reps != null ? ', ${workoutSet.exercise.reps} reps' : ''}',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  );
+                  final workoutSet = summary.performedSets[index];
+                  if (workoutSet.isRestBlock) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Text(
+                        '- Rest Block (${workoutSet.restBlockDuration}s)',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
+                      ),
+                    );
+                  } else if (workoutSet.isRestSet) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Text(
+                        '- Rest (after ${workoutSet.exercise.name} Set ${workoutSet.setNumber}) Duration: ${workoutSet.exercise.restTimeInSeconds ?? 0}s',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
+                      ),
+                    );
+                  } else {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Text(
+                        '- ${workoutSet.exercise.name} (Set ${workoutSet.setNumber} / ${workoutSet.exercise.sets})'
+                        '${workoutSet.exercise.reps != null ? ', Reps: ${workoutSet.exercise.reps}' : ''}'
+                        ' | Work: ${workoutSet.exercise.workTimeInSeconds}s',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    );
+                  }
                 },
               ),
             ),

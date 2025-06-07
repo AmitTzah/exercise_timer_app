@@ -19,41 +19,32 @@ class UserWorkoutAdapter extends TypeAdapter<UserWorkout> {
     return UserWorkout(
       id: fields[0] as String,
       name: fields[1] as String,
-      exercises: (fields[2] as List).cast<Exercise>(),
-      intervalTimeBetweenSets: fields[3] as int,
-      totalWorkoutTime: fields[4] as int,
-      selectedAlternateSets: fields[5] as bool?,
-      selectedLevel: fields[6] as int?,
-      selectedSurvivalMode: fields[7] as bool?,
-      enableRest: fields[8] as bool?,
-      restDurationInSeconds: fields[9] as int?,
+      items: (fields[2] as List).cast<WorkoutItem>(),
+      totalWorkoutTime: fields[3] as int,
+      selectedAlternateSets: fields[4] as bool?,
+      selectedLevel: fields[5] as int?,
+      selectedSurvivalMode: fields[6] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserWorkout obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.exercises)
+      ..write(obj.items)
       ..writeByte(3)
-      ..write(obj.intervalTimeBetweenSets)
-      ..writeByte(4)
       ..write(obj.totalWorkoutTime)
-      ..writeByte(5)
+      ..writeByte(4)
       ..write(obj.selectedAlternateSets)
-      ..writeByte(6)
+      ..writeByte(5)
       ..write(obj.selectedLevel)
-      ..writeByte(7)
-      ..write(obj.selectedSurvivalMode)
-      ..writeByte(8)
-      ..write(obj.enableRest)
-      ..writeByte(9)
-      ..write(obj.restDurationInSeconds);
+      ..writeByte(6)
+      ..write(obj.selectedSurvivalMode);
   }
 
   @override

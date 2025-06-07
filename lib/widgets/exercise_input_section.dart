@@ -5,6 +5,8 @@ class ExerciseInputSection extends StatefulWidget {
   final String? selectedExerciseName;
   final TextEditingController newExerciseSetsController;
   final TextEditingController newExerciseRepsController;
+  final TextEditingController newExerciseWorkTimeController; // New
+  final TextEditingController newExerciseRestTimeController; // New
   final ValueChanged<String?> onExerciseSelected;
   final VoidCallback onAddExercise;
 
@@ -14,6 +16,8 @@ class ExerciseInputSection extends StatefulWidget {
     required this.selectedExerciseName,
     required this.newExerciseSetsController,
     required this.newExerciseRepsController,
+    required this.newExerciseWorkTimeController, // New
+    required this.newExerciseRestTimeController, // New
     required this.onExerciseSelected,
     required this.onAddExercise,
   });
@@ -73,8 +77,36 @@ class _ExerciseInputSectionState extends State<ExerciseInputSection> {
                 controller: widget.newExerciseRepsController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Reps',
+                  labelText: 'Reps (Optional)',
                   hintText: 'e.g., 12',
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              flex: 1,
+              child: TextField(
+                controller: widget.newExerciseWorkTimeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Work Time (seconds)',
+                  hintText: 'e.g., 60',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 1,
+              child: TextField(
+                controller: widget.newExerciseRestTimeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Rest Time (seconds, Optional)',
+                  hintText: 'e.g., 10',
                 ),
               ),
             ),

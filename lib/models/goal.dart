@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'goal.g.dart';
 
-@HiveType(typeId: 3) // Changed from 2 to 3 to avoid conflict with UserWorkout
+@HiveType(typeId: 5) // Changed typeId to 5
 class Goal extends HiveObject {
   @HiveField(0)
   String description;

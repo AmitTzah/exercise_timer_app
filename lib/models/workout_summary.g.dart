@@ -24,16 +24,15 @@ class WorkoutSummaryAdapter extends TypeAdapter<WorkoutSummary> {
       workoutLevel: fields[4] == null ? 1 : fields[4] as int,
       isSurvivalMode: fields[5] == null ? false : fields[5] as bool,
       isAlternatingSets: fields[6] == null ? false : fields[6] as bool,
-      intervalTime: fields[7] == null ? 60 : fields[7] as int,
-      wasStoppedPrematurely: fields[8] == null ? false : fields[8] as bool,
-      totalSets: fields[9] as int,
+      wasStoppedPrematurely: fields[7] == null ? false : fields[7] as bool,
+      totalSets: fields[8] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, WorkoutSummary obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
@@ -49,10 +48,8 @@ class WorkoutSummaryAdapter extends TypeAdapter<WorkoutSummary> {
       ..writeByte(6)
       ..write(obj.isAlternatingSets)
       ..writeByte(7)
-      ..write(obj.intervalTime)
-      ..writeByte(8)
       ..write(obj.wasStoppedPrematurely)
-      ..writeByte(9)
+      ..writeByte(8)
       ..write(obj.totalSets);
   }
 

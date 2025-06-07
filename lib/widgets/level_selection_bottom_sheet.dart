@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:exercise_timer_app/models/user_workout.dart';
+import 'package:exercise_timer_app/models/workout_item.dart'; // Import WorkoutItem
 
 class LevelSelectionBottomSheet {
   static Future<dynamic> show(BuildContext context, dynamic currentLevel, UserWorkout workout) async {
     // Helper to calculate total sets for a given level, ensuring strict increase
     int calculateTotalSetsForLevel(int level) {
-      int totalOriginalSets = workout.exercises.fold(0, (sum, exercise) => sum + exercise.sets);
+      int totalOriginalSets = workout.items.fold(0, (sum, item) {
+        if (item is ExerciseItem) {
+          return sum + item.exercise.sets;
+        }
+        return sum;
+      });
       if (totalOriginalSets == 0) return 0; // Handle empty workout
 
       double multiplier;

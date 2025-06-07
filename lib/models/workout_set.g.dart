@@ -8,7 +8,7 @@ part of 'workout_set.dart';
 
 class WorkoutSetAdapter extends TypeAdapter<WorkoutSet> {
   @override
-  final int typeId = 4;
+  final int typeId = 6;
 
   @override
   WorkoutSet read(BinaryReader reader) {
@@ -20,19 +20,25 @@ class WorkoutSetAdapter extends TypeAdapter<WorkoutSet> {
       exercise: fields[0] as Exercise,
       setNumber: fields[1] as int,
       isRestSet: fields[2] as bool,
+      isRestBlock: fields[3] as bool,
+      restBlockDuration: fields[4] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, WorkoutSet obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.exercise)
       ..writeByte(1)
       ..write(obj.setNumber)
       ..writeByte(2)
-      ..write(obj.isRestSet);
+      ..write(obj.isRestSet)
+      ..writeByte(3)
+      ..write(obj.isRestBlock)
+      ..writeByte(4)
+      ..write(obj.restBlockDuration);
   }
 
   @override

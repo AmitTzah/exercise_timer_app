@@ -26,25 +26,21 @@ class WorkoutSummary extends HiveObject {
   @HiveField(6, defaultValue: false)
   bool isAlternatingSets;
 
-  @HiveField(7, defaultValue: 60) // Default interval time to 60 seconds
-  int intervalTime;
-
-  @HiveField(8, defaultValue: false) // New field for whether workout was stopped prematurely
+  @HiveField(7, defaultValue: false) // New field for whether workout was stopped prematurely
   bool wasStoppedPrematurely;
 
-  @HiveField(9)
+  @HiveField(8) // Re-using field 8
   int totalSets;
 
   WorkoutSummary({
     required this.date,
-    required this.performedSets, // Changed parameter name
+    required this.performedSets,
     required this.totalDurationInSeconds,
     required this.workoutName,
     required this.workoutLevel,
     required this.isSurvivalMode,
     required this.isAlternatingSets,
-    required this.intervalTime,
-    required this.wasStoppedPrematurely, // New required parameter
+    required this.wasStoppedPrematurely,
     required this.totalSets,
   });
 
