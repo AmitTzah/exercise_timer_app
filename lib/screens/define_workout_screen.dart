@@ -4,6 +4,12 @@ import 'package:provider/provider.dart'; // Import provider
 import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/models/user_workout.dart';
 import 'package:exercise_timer_app/repositories/user_workout_repository.dart'; // Use the new repository
+import 'package:exercise_timer_app/widgets/workout_name_text_field.dart';
+import 'package:exercise_timer_app/widgets/exercise_input_section.dart';
+import 'package:exercise_timer_app/widgets/exercise_list.dart';
+import 'package:exercise_timer_app/widgets/interval_and_rest_section.dart';
+import 'package:exercise_timer_app/widgets/workout_duration_display.dart';
+import 'package:exercise_timer_app/widgets/save_workout_button.dart';
 
 class DefineWorkoutScreen extends StatefulWidget {
   final UserWorkout? workout; // Optional: for editing existing workouts
@@ -260,120 +266,29 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              TextFormField(
-                controller: _workoutNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Workout Name',
-                  hintText: 'e.g., Full Body Blast',
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a workout name.';
-                  }
-                  return null;
-                },
-              ),
+              WorkoutNameTextField(controller: _workoutNameController),
               const SizedBox(height: 20),
               const Text(
                 'Exercises:',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _selectedExerciseName,
-                          decoration: const InputDecoration(
-                            labelText: 'Exercise Name',
-                          ),
-                          items: _predefinedExercises.map((String exercise) {
-                            return DropdownMenuItem<String>(
-                              value: exercise,
-                              child: Text(exercise),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedExerciseName = newValue;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select an exercise.';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8), // Vertical spacing between rows
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: TextField(
-                          controller: _newExerciseSetsController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Sets',
-                            hintText: 'e.g., 3',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 1,
-                        child: TextField(
-                          controller: _newExerciseRepsController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Reps',
-                            hintText: 'e.g., 12',
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle),
-                        onPressed: _addExercise,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              ReorderableListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _exercises.length,
-                itemBuilder: (context, index) {
-                  final exercise = _exercises[index];
-                  return Card(
-                    key: ValueKey(exercise.name + index.toString()), // Unique key for reordering
-                    margin: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: ListTile(
-                      title: Text(exercise.name),
-                      subtitle: Text(
-                        'Sets: ${exercise.sets}${exercise.reps != null ? ' | Reps: ${exercise.reps}' : ''}', // Display reps if available
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _editExercise(index),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => _removeExercise(index),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+              ExerciseInputSection(
+                predefinedExercises: _predefinedExercises,
+                selectedExerciseName: _selectedExerciseName,
+                newExerciseSetsController: _newExerciseSetsController,
+                newExerciseRepsController: _newExerciseRepsController,
+                onExerciseSelected: (newValue) {
+                  setState(() {
+                    _selectedExerciseName = newValue;
+                  });
                 },
-                onReorder: (oldIndex, newIndex) {
+                onAddExercise: _addExercise,
+              ),
+              ExerciseList(
+                exercises: _exercises,
+                onEditExercise: _editExercise,
+                onRemoveExercise: _removeExercise,
+                onReorderExercises: (oldIndex, newIndex) {
                   setState(() {
                     if (newIndex > oldIndex) {
                       newIndex -= 1;
@@ -384,81 +299,38 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                 },
               ),
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _intervalTimeController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Set Interval Time (seconds)',
-                  hintText: 'e.g., 60',
-                ),
-                validator: (value) {
-                  if (value == null ||
-                      int.tryParse(value) == null ||
-                      int.parse(value) <= 0) {
-                    return 'Please enter a valid interval time (seconds).';
-                  }
-                  return null;
-                },
-                onChanged: (value) {
+              IntervalAndRestSection(
+                intervalTimeController: _intervalTimeController,
+                intervalTime: _intervalTime,
+                onIntervalTimeChanged: (value) {
                   setState(() {
                     _intervalTime = int.tryParse(value) ?? 60;
                   });
                 },
-              ),
-              const SizedBox(height: 20), // Added space for new rest options
-              SwitchListTile(
-                title: const Text('Include Rest Periods'),
-                value: _enableRest,
-                onChanged: (bool value) {
+                enableRest: _enableRest,
+                onEnableRestChanged: (value) {
                   setState(() {
                     _enableRest = value;
-                    // If disabling rest, clear the rest duration controller
                     if (!value) {
-                      _restDurationController.text = _restDurationInSeconds.toString(); // Reset to default
+                      _restDurationController.text = _restDurationInSeconds.toString();
                     }
                   });
                 },
-              ),
-              if (_enableRest) // Conditionally display rest duration input
-                TextFormField(
-                  controller: _restDurationController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Rest Duration (seconds)',
-                    hintText: 'e.g., 30',
-                  ),
-                  validator: (value) {
-                    if (_enableRest && (value == null || int.tryParse(value) == null || int.parse(value) <= 0)) {
-                      return 'Please enter a valid rest duration (seconds).';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      _restDurationInSeconds = int.tryParse(value) ?? 30;
-                    });
-                  },
-                ),
-              const SizedBox(height: 10), // Reduced space
-              const SizedBox(height: 20),
-              Text(
-                'Total Workout Duration: ${_formatDuration(_calculateTotalDuration())}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                restDurationController: _restDurationController,
+                restDurationInSeconds: _restDurationInSeconds,
+                onRestDurationChanged: (value) {
+                  setState(() {
+                    _restDurationInSeconds = int.tryParse(value) ?? 30;
+                  });
+                },
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _saveWorkout,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                ),
-                child: const Text(
-                  'Save Workout',
-                  style: TextStyle(fontSize: 20),
-                ),
+              WorkoutDurationDisplay(
+                totalDurationInSeconds: _calculateTotalDuration(),
+                formatDuration: _formatDuration,
               ),
+              const SizedBox(height: 20),
+              SaveWorkoutButton(onPressed: _saveWorkout),
             ],
           ),
         ),

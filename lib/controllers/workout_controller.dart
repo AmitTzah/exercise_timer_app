@@ -6,6 +6,7 @@ import 'package:exercise_timer_app/models/workout_summary.dart';
 import 'package:exercise_timer_app/models/workout_set.dart'; // Keep for WorkoutSummary
 import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:exercise_timer_app/services/workout_logic_service.dart'; // New: Import WorkoutLogicService
+import 'package:exercise_timer_app/models/workout_completion_details.dart';
 
 class WorkoutController extends ChangeNotifier {
   final UserWorkout _workout; // Keep original workout for summary and interval time
@@ -20,7 +21,7 @@ class WorkoutController extends ChangeNotifier {
   );
   StreamSubscription<int>? _rawTimeSubscription;
 
-  late WorkoutLogicService _workoutLogicService;
+  final WorkoutLogicService _workoutLogicService;
 
   UserWorkout get workout => _workout;
   int get totalSetsCompleted => _workoutLogicService.totalSetsCompleted;
@@ -30,11 +31,13 @@ class WorkoutController extends ChangeNotifier {
   // Use the new getter from WorkoutLogicService for total expected duration
   double get totalExpectedWorkoutDuration => _workoutLogicService.totalWorkoutDurationWithRests.toDouble();
 
-  Stream<int> get currentIntervalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
+  Stream<int> get currentIntervalTimeRemainingStream => _stopWatchTimer.rawTime.map(_calculateCurrentIntervalTimeRemaining);
+
+  int _calculateCurrentIntervalTimeRemaining(int rawTimeValue) {
     if (_isWorkoutFinished) return 0;
 
     final WorkoutSet? currentWs = _workoutLogicService.currentWorkoutSet;
-    if (currentWs == null) return 0; // Should not happen
+    if (currentWs == null) return 0;
 
     final int currentSetDurationSec = currentWs.isRestSet
         ? (_workout.restDurationInSeconds ?? 0)
@@ -42,34 +45,36 @@ class WorkoutController extends ChangeNotifier {
 
     int cumulativeDurationOfCompletedSetsSec = 0;
     for (int i = 0; i < _workoutLogicService.totalSetsCompleted; i++) {
-        if (i < _workoutLogicService.exercisesToPerform.length) { // Boundary check
-            final set = _workoutLogicService.exercisesToPerform[i];
-            if (set.isRestSet) {
-                cumulativeDurationOfCompletedSetsSec += (_workout.restDurationInSeconds ?? 0);
-            } else {
-                cumulativeDurationOfCompletedSetsSec += _workout.intervalTimeBetweenSets;
-            }
-        } else if (_workoutLogicService.isSurvivalMode) { // Handle survival mode looping
-             final set = _workoutLogicService.exercisesToPerform[i % _workoutLogicService.exercisesToPerform.length];
-             if (set.isRestSet) {
-                cumulativeDurationOfCompletedSetsSec += (_workout.restDurationInSeconds ?? 0);
-            } else {
-                cumulativeDurationOfCompletedSetsSec += _workout.intervalTimeBetweenSets;
-            }
+      if (i < _workoutLogicService.exercisesToPerform.length) {
+        final set = _workoutLogicService.exercisesToPerform[i];
+        if (set.isRestSet) {
+          cumulativeDurationOfCompletedSetsSec += (_workout.restDurationInSeconds ?? 0);
+        } else {
+          cumulativeDurationOfCompletedSetsSec += _workout.intervalTimeBetweenSets;
         }
+      } else if (_workoutLogicService.isSurvivalMode) {
+        final set = _workoutLogicService.exercisesToPerform[i % _workoutLogicService.exercisesToPerform.length];
+        if (set.isRestSet) {
+          cumulativeDurationOfCompletedSetsSec += (_workout.restDurationInSeconds ?? 0);
+        } else {
+          cumulativeDurationOfCompletedSetsSec += _workout.intervalTimeBetweenSets;
+        }
+      }
     }
 
-    final int elapsedInCurrentIntervalMs = value - (cumulativeDurationOfCompletedSetsSec * 1000);
+    final int elapsedInCurrentIntervalMs = rawTimeValue - (cumulativeDurationOfCompletedSetsSec * 1000);
     final int remainingMs = (currentSetDurationSec * 1000) - elapsedInCurrentIntervalMs;
     return remainingMs > 0 ? remainingMs : 0;
-  });
+  }
 
-  Stream<int> get totalTimeRemainingStream => _stopWatchTimer.rawTime.map((value) {
+  Stream<int> get totalTimeRemainingStream => _stopWatchTimer.rawTime.map(_calculateTotalTimeRemaining);
+
+  int _calculateTotalTimeRemaining(int rawTimeValue) {
     if (_workoutLogicService.isSurvivalMode) return 0;
     if (_isWorkoutFinished) return 0;
-    final int remainingMs = (totalExpectedWorkoutDuration * 1000).round() - value;
+    final int remainingMs = (totalExpectedWorkoutDuration * 1000).round() - rawTimeValue;
     return remainingMs > 0 ? remainingMs : 0;
-  });
+  }
 
   Stream<int> get totalWorkoutDurationStream => _stopWatchTimer.rawTime;
   DateTime? get workoutStartTime => _workoutStartTime;
@@ -78,22 +83,51 @@ class WorkoutController extends ChangeNotifier {
   WorkoutSet? get currentWorkoutSet => _workoutLogicService.currentWorkoutSet;
   int get totalSets => _workoutLogicService.totalSetsInSequence;
 
-  Function(WorkoutSummary)? onWorkoutFinished;
+  set onWorkoutFinished(Function(WorkoutSummary)? callback) {
+    _onWorkoutFinished = callback;
+  }
+
+  Function(WorkoutSummary)? _onWorkoutFinished;
+
+  void resumeWorkout() {
+    _stopWatchTimer.onStartTimer(); // Updated: Use new start method
+    notifyListeners();
+  }
+
+  void pauseWorkout() {
+    _stopWatchTimer.onStopTimer(); // Updated: Use new stop method
+    notifyListeners();
+  }
+
+  void finishWorkout() async {
+    _isWorkoutFinished = true; // Set flag that workout is finished
+    notifyListeners(); // Notify listeners immediately to update UI
+
+    await _rawTimeSubscription?.cancel();
+    _rawTimeSubscription = null;
+    
+    if (_stopWatchTimer.isRunning) {
+        _stopWatchTimer.onStopTimer(); // Updated: Use new stop method
+        debugPrint('Workout manually finished. StopWatchTimer stopped.');
+    } else {
+        debugPrint('Workout manually finished. StopWatchTimer was already stopped.');
+    }
+    _finishWorkoutInternal();
+  }
 
   WorkoutController({
     required UserWorkout workout,
     required AudioService audioService,
     required bool isAlternateMode,
     required dynamic selectedLevelOrMode,
-  }) : _workout = workout,
-       _audioService = audioService {
+  })  : _workout = workout,
+        _audioService = audioService,
+        _workoutLogicService = WorkoutLogicService(
+          baseWorkout: workout,
+          isAlternateMode: isAlternateMode,
+          selectedLevelOrMode: selectedLevelOrMode,
+        ) {
     _workoutStartTime = DateTime.now();
-
-    _workoutLogicService = WorkoutLogicService(
-      baseWorkout: workout,
-      isAlternateMode: isAlternateMode,
-      selectedLevelOrMode: selectedLevelOrMode,
-    );
 
     if (_workoutLogicService.exercisesToPerform.isNotEmpty) {
       debugPrint('StopWatchTimer started.');
@@ -182,35 +216,18 @@ class WorkoutController extends ChangeNotifier {
     });
   }
 
-  void pauseWorkout() {
-    _stopWatchTimer.onStopTimer(); // Updated: Use new stop method
-    notifyListeners();
-  }
-
-  void resumeWorkout() {
-    _stopWatchTimer.onStartTimer(); // Updated: Use new start method
-    notifyListeners();
-  }
-
-  void finishWorkout() async {
-    _isWorkoutFinished = true; // Set flag that workout is finished
-    notifyListeners(); // Notify listeners immediately to update UI
-
-    await _rawTimeSubscription?.cancel();
-    _rawTimeSubscription = null;
-    
-    if (_stopWatchTimer.isRunning) {
-        _stopWatchTimer.onStopTimer(); // Updated: Use new stop method
-        debugPrint('Workout manually finished. StopWatchTimer stopped.');
-    } else {
-        debugPrint('Workout manually finished. StopWatchTimer was already stopped.');
-    }
-    _finishWorkoutInternal();
-  }
 
   void _finishWorkoutInternal() {
     _workoutStartTime ??= DateTime.now();
 
+    final WorkoutCompletionDetails details = _determineWorkoutCompletionDetails();
+
+    debugPrint('Creating WorkoutSummary. totalWorkoutDuration: ${_currentRawTimeMs / 1000.0} seconds');
+    final summary = _createWorkoutSummary(details);
+    _onWorkoutFinished?.call(summary);
+  }
+
+  WorkoutCompletionDetails _determineWorkoutCompletionDetails() {
     final bool wasStoppedPrematurely;
     List<WorkoutSet> finalPerformedSets;
 
@@ -232,28 +249,21 @@ class WorkoutController extends ChangeNotifier {
       wasStoppedPrematurely = (_workoutLogicService.totalSetsCompleted < _workoutLogicService.exercisesToPerform.length);
       finalPerformedSets = _workoutLogicService.exercisesToPerform.sublist(0, wasStoppedPrematurely ? _workoutLogicService.totalSetsCompleted : _workoutLogicService.exercisesToPerform.length);
     }
+    return WorkoutCompletionDetails(wasStoppedPrematurely, finalPerformedSets);
+  }
 
-    debugPrint('Creating WorkoutSummary. totalWorkoutDuration: ${_currentRawTimeMs / 1000.0} seconds'); // Updated: Use _currentRawTimeMs
-    final summary = WorkoutSummary(
+  WorkoutSummary _createWorkoutSummary(WorkoutCompletionDetails details) {
+    return WorkoutSummary(
       date: _workoutStartTime!,
-      performedSets: finalPerformedSets,
-      totalDurationInSeconds: (_currentRawTimeMs / 1000.0).round(), // Updated: Use _currentRawTimeMs
+      performedSets: details.finalPerformedSets,
+      totalDurationInSeconds: (_currentRawTimeMs / 1000.0).round(),
       workoutName: _workout.name,
       workoutLevel: _workoutLogicService.isSurvivalMode ? 1 : (_workoutLogicService.selectedLevelOrMode is int ? _workoutLogicService.selectedLevelOrMode : 1),
       isSurvivalMode: _workoutLogicService.isSurvivalMode,
       isAlternatingSets: _workoutLogicService.isAlternateMode,
       intervalTime: _workout.intervalTimeBetweenSets,
-      wasStoppedPrematurely: wasStoppedPrematurely,
-      totalSets: finalPerformedSets.length,
+      wasStoppedPrematurely: details.wasStoppedPrematurely,
+      totalSets: details.finalPerformedSets.length,
     );
-    onWorkoutFinished?.call(summary);
-  }
-
-  @override
-  void dispose() async {
-    await _rawTimeSubscription?.cancel();
-    _rawTimeSubscription = null;
-    await _stopWatchTimer.dispose();
-    super.dispose();
   }
 }

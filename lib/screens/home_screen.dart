@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:exercise_timer_app/models/user_workout.dart';
 import 'package:exercise_timer_app/repositories/user_workout_repository.dart'; // Use the new repository
 import 'package:exercise_timer_app/screens/define_workout_screen.dart';
-import 'package:exercise_timer_app/screens/workout_screen.dart';
 import 'package:exercise_timer_app/screens/workout_summaries_screen.dart';
+import 'package:exercise_timer_app/widgets/workout_card.dart';
+import 'package:exercise_timer_app/widgets/level_selection_bottom_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -78,69 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<dynamic> _showLevelSelectionBottomSheet(BuildContext context, dynamic currentLevel, UserWorkout workout) async {
-    // Helper to calculate total sets for a given level, ensuring strict increase
-    int calculateTotalSetsForLevel(int level) {
-      int totalOriginalSets = workout.exercises.fold(0, (sum, exercise) => sum + exercise.sets);
-      if (totalOriginalSets == 0) return 0; // Handle empty workout
-
-      double multiplier;
-      if (level == 1) {
-        multiplier = 1.0;
-      } else {
-        multiplier = 1.0 + ((level - 1) * 20) / 100.0; // Changed to 20% increment
-      }
-
-      int calculatedSets = (totalOriginalSets * multiplier).ceil();
-
-      // Ensure strict increase for total sets compared to previous level
-      if (level > 1) {
-        int previousLevelSets = calculateTotalSetsForLevel(level - 1); // Recursive call
-        if (calculatedSets <= previousLevelSets) {
-          calculatedSets = previousLevelSets + 1; // Force an increment
-        }
-      }
-      return calculatedSets;
-    }
-
-    return showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Select Workout Level',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    for (int i = 1; i <= 10; i++) // Changed to 10 levels
-                      ListTile(
-                        title: Text(
-                          'Level $i (+${i == 1 ? 0 : ((i - 1) * 20)}%) - Total Sets: ${calculateTotalSetsForLevel(i)}', // Updated percentage
-                        ),
-                        trailing: i == currentLevel ? const Icon(Icons.check, color: Colors.blue) : null,
-                        onTap: () {
-                          Navigator.pop(context, i);
-                        },
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   String _formatTime(int totalSeconds, {bool includeHours = false}) {
     final int hours = totalSeconds ~/ 3600;
     final int minutes = (totalSeconds % 3600) ~/ 60;
@@ -184,164 +122,15 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: _userWorkouts.length,
               itemBuilder: (context, index) {
                 final workout = _userWorkouts[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 1. Workout Name
-                        Text(
-                          workout.name,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-
-                        // 2. Workout Details Row
-                        Row(
-                          children: [
-                            Text('Total Time: ${_formatTime(workout.totalWorkoutTime, includeHours: true)}'),
-                            const SizedBox(width: 16),
-                            Text('Interval Time: ${_formatTime(workout.intervalTimeBetweenSets)}'),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        // 3. Exercises List
-                        Text(
-                          'Exercises:',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        ...workout.exercises.map(
-                          (e) => Text(
-                            '  - ${e.name} (${e.sets}${e.reps != null ? 'x${e.reps}' : ''})', // Display sets and reps
-                            style: const TextStyle(fontSize: 14.0),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // 4. Controls Section
-                        // Alternate Sets Row
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _alternateModeSelections[workout.id] ?? false,
-                              onChanged: (bool? newValue) async {
-                                setState(() {
-                                  _alternateModeSelections[workout.id] = newValue ?? false;
-                                });
-                                // Persist the change
-                                workout.selectedAlternateSets = newValue ?? false;
-                                await _userWorkoutRepository.saveUserWorkout(workout);
-                              },
-                            ),
-                            const Text('Alternate Sets'),
-                          ],
-                        ),
-                        // Survival Mode Checkbox
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _survivalModeSelections[workout.id] ?? false,
-                              onChanged: (bool? newValue) async {
-                                setState(() {
-                                  _survivalModeSelections[workout.id] = newValue ?? false;
-                                });
-                                // Persist the change
-                                workout.selectedSurvivalMode = newValue ?? false;
-                                await _userWorkoutRepository.saveUserWorkout(workout);
-                              },
-                            ),
-                            const Text('Survival Mode'),
-                          ],
-                        ),
-                        // Level Selection Row
-                        Row(
-                          children: [
-                            Expanded( // Expanded to take available space
-                              child: InkWell(
-                                onTap: () async {
-                                  final int? selectedValue = await _showLevelSelectionBottomSheet(
-                                    context,
-                                    _levelSelections[workout.id] ?? 1,
-                                    workout, // Pass the workout object
-                                  );
-                                  if (selectedValue != null) {
-                                    setState(() {
-                                      _levelSelections[workout.id] = selectedValue;
-                                    });
-                                    // Persist the change
-                                    workout.selectedLevel = selectedValue;
-                                    await _userWorkoutRepository.saveUserWorkout(workout);
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey),
-                                    borderRadius: BorderRadius.circular(4.0),
-                                  ),
-                                  child: Row( // New Row inside Container
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween, // To push text and potential icon apart
-                                    children: [
-                                      Text( // Combined text
-                                        'Level: L${_levelSelections[workout.id] ?? 1} (+${((_levelSelections[workout.id] ?? 1) == 1 ? 0 : ((((_levelSelections[workout.id] ?? 1) - 1) * 20)))}%)', // Updated percentage
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // 5. Action Buttons Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center, // Center the buttons
-                          children: [
-                            ElevatedButton.icon( // Play button
-                              icon: const Icon(Icons.play_arrow),
-                              label: const Text("Start"),
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => WorkoutScreen(
-                                      workout: workout,
-                                      isAlternateMode: _alternateModeSelections[workout.id] ?? false,
-                                      selectedLevelOrMode: _survivalModeSelections[workout.id] == true
-                                          ? "survival"
-                                          : (_levelSelections[workout.id] ?? 1),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton.icon( // Edit button (changed from TextButton.icon)
-                              icon: const Icon(Icons.edit),
-                              label: const Text("Edit"),
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => DefineWorkoutScreen(workout: workout),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton.icon( // Delete button (changed from TextButton.icon)
-                              icon: const Icon(Icons.delete),
-                              label: const Text("Delete"),
-                              onPressed: () => _deleteWorkout(workout.id),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                return WorkoutCard(
+                  workout: workout,
+                  formatTime: _formatTime,
+                  showLevelSelectionBottomSheet: LevelSelectionBottomSheet.show,
+                  deleteWorkout: _deleteWorkout,
+                  alternateModeSelections: _alternateModeSelections,
+                  levelSelections: _levelSelections,
+                  survivalModeSelections: _survivalModeSelections,
+                  onSelectionsChanged: _onWorkoutsChanged, // Callback to trigger setState in parent
                 );
               },
             ),

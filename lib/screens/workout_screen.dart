@@ -5,7 +5,9 @@ import 'package:exercise_timer_app/services/audio_service.dart';
 import 'package:exercise_timer_app/screens/workout_summary_display_screen.dart';
 import 'package:exercise_timer_app/controllers/workout_controller.dart';
 import 'package:exercise_timer_app/models/workout_summary.dart';
-import 'package:stop_watch_timer/stop_watch_timer.dart';
+import 'package:exercise_timer_app/widgets/workout_timer_header.dart';
+import 'package:exercise_timer_app/widgets/workout_set_list.dart';
+import 'package:exercise_timer_app/widgets/workout_controls.dart';
 
 class WorkoutScreen extends StatefulWidget {
   final UserWorkout workout;
@@ -93,182 +95,60 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                child: Column(
-                  children: [
-                    Text(
-                      widget.selectedLevelOrMode == "survival"
-                          ? 'Survival Time:'
-                          : 'Total Time Remaining:',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    StreamBuilder<int>(
-                      stream: widget.selectedLevelOrMode == "survival"
-                          ? _workoutController.elapsedSurvivalTimeStream
-                          : _workoutController.totalTimeRemainingStream,
-                      initialData: 0,
-                      builder: (context, snapshot) {
-                        final int timeValue = snapshot.data ?? 0;
-                        return Text(
-                          StopWatchTimer.getDisplayTime(
-                            timeValue,
-                            hours: true,
-                            minute: true,
-                            second: true,
-                            milliSecond: false,
-                          ),
-                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.deepOrange,
-                          ),
-                        );
-                      },
-                    ),
-                    Text(
-                      'Total Sets: ${_workoutController.totalSetsCompleted}/${_workoutController.exercisesToPerform.length}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ],
-                ),
+              WorkoutTimerHeader(
+                selectedLevelOrMode: widget.selectedLevelOrMode,
+                timeStream: widget.selectedLevelOrMode == "survival"
+                    ? _workoutController.elapsedSurvivalTimeStream
+                    : _workoutController.totalTimeRemainingStream,
+                totalSetsCompleted: _workoutController.totalSetsCompleted,
+                totalExercisesToPerform: _workoutController.exercisesToPerform.length,
               ),
-              Flexible(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: _workoutController.exercisesToPerform.length,
-                  itemBuilder: (context, index) {
-                    final workoutSet = _workoutController.exercisesToPerform[index];
-                    final isCurrent = index == _workoutController.currentOverallSetIndex;
-                    return Card(
-                      color: isCurrent ? Colors.blue.shade100 : null,
-                      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                      child: ListTile(
-                        leading: isCurrent
-                            ? const Icon(Icons.arrow_right, color: Colors.blueAccent, size: 30)
-                            : null,
-                        title: Text(
-                          workoutSet.isRestSet ? 'Rest' : workoutSet.exercise.name,
-                          style: TextStyle(
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                            color: isCurrent ? Colors.blueAccent : Colors.black,
-                            fontSize: 20,
-                          ),
+              WorkoutSetList(
+                scrollController: _scrollController,
+                exercisesToPerform: _workoutController.exercisesToPerform,
+                currentOverallSetIndex: _workoutController.currentOverallSetIndex,
+                currentIntervalTimeRemainingStream: _workoutController.currentIntervalTimeRemainingStream,
+                workout: widget.workout,
+              ),
+              WorkoutControls(
+                isPaused: _workoutController.isPaused,
+                onPauseResume: () {
+                  if (_workoutController.isPaused) {
+                    _workoutController.resumeWorkout();
+                  } else {
+                    _workoutController.pauseWorkout();
+                  }
+                },
+                onStop: () {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Stop Workout?'),
+                        content: const Text(
+                          'Are you sure you want to stop the workout?',
                         ),
-                        subtitle: workoutSet.isRestSet
-                            ? Text(
-                                'Duration: ${widget.workout.restDurationInSeconds ?? 0} seconds',
-                                style: TextStyle(
-                                  color: isCurrent ? Colors.blueAccent : Colors.grey[600],
-                                  fontSize: 16,
-                                ),
-                              )
-                            : Text(
-                                'Set: ${workoutSet.setNumber} / ${workoutSet.exercise.sets}${workoutSet.exercise.reps != null ? ', Reps: ${workoutSet.exercise.reps}' : ''}',
-                                style: TextStyle(
-                                  color: isCurrent ? Colors.blueAccent : Colors.grey[600],
-                                  fontSize: 16,
-                                ),
-                              ),
-                        trailing: isCurrent
-                            ? StreamBuilder<int>(
-                                stream: _workoutController.currentIntervalTimeRemainingStream,
-                                initialData: workoutSet.isRestSet
-                                    ? (widget.workout.restDurationInSeconds ?? 0) * 1000
-                                    : widget.workout.intervalTimeBetweenSets * 1000,
-                                builder: (context, snapshot) {
-                                  final int timeValue = snapshot.data ?? 0;
-                                  return Text(
-                                    StopWatchTimer.getDisplayTime(
-                                      timeValue,
-                                      hours: false,
-                                      minute: true,
-                                      second: true,
-                                      milliSecond: true,
-                                    ),
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blueAccent,
-                                      fontSize: 22,
-                                    ),
-                                  );
-                                },
-                              )
-                            : null,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-                child: Column(
-                  children: [
-                    // Removed the redundant "Total Time Remaining" / "Time Survived" text
-                    const SizedBox(height: 20), // Keep spacing for buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            if (_workoutController.isPaused) {
+                        actions: <Widget>[
+                          TextButton(
+                            child: const Text('Cancel'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
                               _workoutController.resumeWorkout();
-                            } else {
-                              _workoutController.pauseWorkout();
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _workoutController.isPaused ? Colors.green : Colors.orange,
-                            minimumSize: const Size(150, 50),
+                            },
                           ),
-                          child: Text(
-                            _workoutController.isPaused ? 'Resume Workout' : 'Pause Workout',
-                            style: const TextStyle(fontSize: 18, color: Colors.white),
+                          TextButton(
+                            child: const Text('Stop'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              _workoutController.finishWorkout();
+                            },
                           ),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: const Text('Stop Workout?'),
-                                  content: const Text(
-                                    'Are you sure you want to stop the workout?',
-                                  ),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      child: const Text('Cancel'),
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                        _workoutController.resumeWorkout(); // Resume if cancelled
-                                      },
-                                    ),
-                                    TextButton(
-                                      child: const Text('Stop'),
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                        _workoutController.finishWorkout();
-                                      },
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            minimumSize: const Size(150, 50),
-                          ),
-                          child: const Text(
-                            'Stop Workout',
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                        ],
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
