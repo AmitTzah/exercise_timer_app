@@ -17,7 +17,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late UserWorkoutRepository _userWorkoutRepository;
   List<UserWorkout> _userWorkouts = [];
-  final Map<String, bool> _alternateModeSelections = {};
   final Map<String, int> _levelSelections = {}; // Stores int for level
   final Map<String, bool> _survivalModeSelections = {}; // Stores bool for survival mode
 
@@ -45,7 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _userWorkouts = workouts;
       // Initialize selections from persisted values, or default
       for (var workout in workouts) {
-        _alternateModeSelections[workout.id] = workout.selectedAlternateSets ?? false;
         _levelSelections[workout.id] = workout.selectedLevel ?? 1;
         _survivalModeSelections[workout.id] = workout.selectedSurvivalMode ?? false; // Initialize survival mode
       }
@@ -127,7 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   formatTime: _formatTime,
                   showLevelSelectionBottomSheet: LevelSelectionBottomSheet.show,
                   deleteWorkout: _deleteWorkout,
-                  alternateModeSelections: _alternateModeSelections,
                   levelSelections: _levelSelections,
                   survivalModeSelections: _survivalModeSelections,
                   onSelectionsChanged: _onWorkoutsChanged, // Callback to trigger setState in parent

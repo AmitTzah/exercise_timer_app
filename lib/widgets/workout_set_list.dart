@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:exercise_timer_app/models/workout_set.dart';
-import 'package:exercise_timer_app/models/user_workout.dart'; // Import UserWorkout for restDurationInSeconds
+// Import UserWorkout for restDurationInSeconds
 
 class WorkoutSetList extends StatelessWidget {
   final ScrollController scrollController;

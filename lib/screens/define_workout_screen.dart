@@ -5,12 +5,12 @@ import 'package:exercise_timer_app/models/exercise.dart';
 import 'package:exercise_timer_app/models/user_workout.dart';
 import 'package:exercise_timer_app/repositories/user_workout_repository.dart'; // Use the new repository
 import 'package:exercise_timer_app/widgets/workout_name_text_field.dart';
-import 'package:exercise_timer_app/widgets/exercise_input_section.dart';
 import 'package:exercise_timer_app/widgets/exercise_list.dart';
-import 'package:exercise_timer_app/widgets/interval_and_rest_section.dart';
 import 'package:exercise_timer_app/widgets/workout_duration_display.dart';
 import 'package:exercise_timer_app/widgets/save_workout_button.dart';
 import 'package:exercise_timer_app/models/workout_item.dart'; // Import WorkoutItem
+import 'package:exercise_timer_app/models/workout_type.dart'; // Import WorkoutType
+import 'package:exercise_timer_app/widgets/add_exercise_dialog.dart'; // Import the new dialog
 
 class DefineWorkoutScreen extends StatefulWidget {
   final UserWorkout? workout; // Optional: for editing existing workouts
@@ -25,15 +25,11 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   late UserWorkoutRepository _userWorkoutRepository; // Declare repository
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _workoutNameController = TextEditingController();
-  String? _selectedExerciseName; // New variable to hold selected exercise
-  final TextEditingController _newExerciseSetsController =
-      TextEditingController();
-  final TextEditingController _newExerciseRepsController = TextEditingController();
-  final TextEditingController _newExerciseWorkTimeController = TextEditingController(); // New controller for work time
-  final TextEditingController _newExerciseRestTimeController = TextEditingController(); // New controller for rest time
-
+  // Removed: final FocusNode _workoutNameFocusNode = FocusNode();
+  
   List<WorkoutItem> _workoutItems = []; // Changed to WorkoutItem
   String _workoutId = const Uuid().v4(); // Generate new ID for new workouts
+  WorkoutType _workoutType = WorkoutType.sequential; // New: Default workout type
 
   // Predefined list of exercises
   final List<String> _predefinedExercises = [
@@ -59,21 +55,10 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
       _workoutId = widget.workout!.id;
       _workoutNameController.text = widget.workout!.name;
       _workoutItems = List.from(widget.workout!.items); // Populate with WorkoutItems
+      _workoutType = widget.workout!.workoutType; // Initialize workout type from existing workout
 
-      // Set initial selected exercise if editing and it's in the predefined list
-      // Find the first ExerciseItem to set the initial selected exercise name
-      final firstExerciseItem = _workoutItems.firstWhere(
-        (item) => item is ExerciseItem,
-        orElse: () => ExerciseItem(exercise: Exercise(name: _predefinedExercises.first, sets: 1, workTimeInSeconds: 60)), // Default if no exercise items
-      ) as ExerciseItem;
-      _selectedExerciseName = firstExerciseItem.exercise.name;
-
-    } else {
-      // Creating new workout, set default values for new exercise input
-      _newExerciseWorkTimeController.text = '60'; // Default work time
-      _newExerciseRestTimeController.text = '10'; // Default rest time
-      _selectedExerciseName = _predefinedExercises.first; // Default to the first in the list
     }
+    // Removed: WidgetsBinding.instance.addPostFrameCallback((_) { _workoutNameFocusNode.requestFocus(); });
   }
 
   @override
@@ -85,45 +70,22 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
   @override
   void dispose() {
     _workoutNameController.dispose();
-    _newExerciseSetsController.dispose();
-    _newExerciseRepsController.dispose();
-    _newExerciseWorkTimeController.dispose(); // Dispose new controller
-    _newExerciseRestTimeController.dispose(); // Dispose new controller
+    // Removed: _workoutNameFocusNode.dispose();
     super.dispose();
   }
 
-  void _addExercise() {
-    final String? name = _selectedExerciseName;
-    final int? sets = int.tryParse(_newExerciseSetsController.text.trim());
-    final int? reps = int.tryParse(_newExerciseRepsController.text.trim());
-    final int? workTime = int.tryParse(_newExerciseWorkTimeController.text.trim());
-    final int? restTime = int.tryParse(_newExerciseRestTimeController.text.trim());
+  void _addExercise() async {
+    final ExerciseItem? newExerciseItem = await showDialog<ExerciseItem>(
+      context: context,
+      builder: (BuildContext context) {
+        return AddExerciseDialog(predefinedExercises: _predefinedExercises);
+      },
+    );
 
-    if (name != null && name.isNotEmpty && sets != null && sets > 0 && workTime != null && workTime > 0) {
+    if (newExerciseItem != null) {
       setState(() {
-        _workoutItems.add(ExerciseItem(
-          exercise: Exercise(
-            name: name,
-            sets: sets,
-            reps: reps,
-            workTimeInSeconds: workTime,
-            restTimeInSeconds: restTime,
-          ),
-        ));
-        _newExerciseSetsController.clear();
-        _newExerciseRepsController.clear();
-        _newExerciseWorkTimeController.text = '60'; // Reset to default
-        _newExerciseRestTimeController.text = '10'; // Reset to default
-        _selectedExerciseName = _predefinedExercises.first; // Reset dropdown
+        _workoutItems.add(newExerciseItem);
       });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please select an exercise, enter valid sets, and work time.',
-          ),
-        ),
-      );
     }
   }
 
@@ -285,7 +247,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
                 },
               ),
               ElevatedButton(
-                child: const Text('Save'),
+                child: const Text('Add'),
                 onPressed: () {
                   final int? newDuration = int.tryParse(restBlockDurationController.text.trim());
                   if (newDuration != null && newDuration > 0) {
@@ -364,6 +326,7 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
         name: workoutName,
         items: _workoutItems, // Use new items list
         totalWorkoutTime: totalDuration,
+        workoutType: _workoutType, // Save the selected workout type
       );
 
       await _userWorkoutRepository.saveUserWorkout(newWorkout);
@@ -387,30 +350,46 @@ class _DefineWorkoutScreenState extends State<DefineWorkoutScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              WorkoutNameTextField(controller: _workoutNameController),
-              const SizedBox(height: 20),
-              const Text(
-                'Exercises:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              WorkoutNameTextField(
+                controller: _workoutNameController,
+                // Removed: focusNode: _workoutNameFocusNode,
               ),
-              ExerciseInputSection(
-                predefinedExercises: _predefinedExercises,
-                selectedExerciseName: _selectedExerciseName,
-                newExerciseSetsController: _newExerciseSetsController,
-                newExerciseRepsController: _newExerciseRepsController,
-                newExerciseWorkTimeController: _newExerciseWorkTimeController, // Pass new controller
-                newExerciseRestTimeController: _newExerciseRestTimeController, // Pass new controller
-                onExerciseSelected: (newValue) {
+              const SizedBox(height: 20),
+              // New: Workout Type Selector
+              SegmentedButton<WorkoutType>(
+                segments: const <ButtonSegment<WorkoutType>>[
+                  ButtonSegment<WorkoutType>(
+                    value: WorkoutType.sequential,
+                    label: Text('Sequential'),
+                  ),
+                  ButtonSegment<WorkoutType>(
+                    value: WorkoutType.alternating,
+                    label: Text('Alternating'),
+                  ),
+                ],
+                selected: <WorkoutType>{_workoutType},
+                onSelectionChanged: (Set<WorkoutType> newSelection) {
                   setState(() {
-                    _selectedExerciseName = newValue;
+                    _workoutType = newSelection.first;
                   });
                 },
-                onAddExercise: _addExercise,
               ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _addRestBlock,
-                child: const Text('Add Rest Block'),
+              const SizedBox(height: 20),
+              // Buttons to add exercises/rest blocks
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _addExercise,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Exercise'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _addRestBlock,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Rest Block'),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               ExerciseList(

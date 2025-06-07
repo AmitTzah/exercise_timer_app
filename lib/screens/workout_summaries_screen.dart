@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:hive/hive.dart'; // Keep Hive import for Box type
 import 'package:exercise_timer_app/models/workout_summary.dart';
 import 'package:exercise_timer_app/repositories/workout_summary_repository.dart'; // Use the new repository
+// Import WorkoutType
 
 import 'package:intl/intl.dart'; // For date formatting
 
@@ -111,7 +112,7 @@ class _WorkoutSummariesScreenState extends State<WorkoutSummariesScreen> {
                         Text('Duration: ${_formatDuration(summary.totalDuration)}'),
                         if (summary.workoutLevel > 1) Text('Level: ${summary.workoutLevel}'),
                         if (summary.isSurvivalMode) const Text('Mode: Survival'),
-                        if (summary.isAlternatingSets) const Text('Sets Order: Alternating'),
+                        Text('Sets Order: ${summary.workoutType.toString().split('.').last == 'alternating' ? 'Alternating' : 'Sequential'}'),
                         Text('Total Sets Performed: ${summary.totalSets}'),
                         if (summary.wasStoppedPrematurely) const Text('Status: Stopped Early'),
                       ],

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// Import Hive
 import 'package:exercise_timer_app/services/database_service.dart';
 import 'package:exercise_timer_app/screens/home_screen.dart';
 import 'package:exercise_timer_app/repositories/user_workout_repository.dart';
 import 'package:exercise_timer_app/repositories/workout_summary_repository.dart';
 import 'package:exercise_timer_app/services/audio_service.dart';
+// Import WorkoutType
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DatabaseService.init();
+
+  // Adapter registration is now handled in DatabaseService.init()
 
   final userWorkoutsBox = await DatabaseService.openUserWorkoutsBox();
   final workoutSummariesBox = await DatabaseService.openWorkoutSummariesBox();

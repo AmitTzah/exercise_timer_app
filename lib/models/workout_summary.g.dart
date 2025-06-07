@@ -23,7 +23,7 @@ class WorkoutSummaryAdapter extends TypeAdapter<WorkoutSummary> {
       workoutName: fields[3] == null ? '' : fields[3] as String,
       workoutLevel: fields[4] == null ? 1 : fields[4] as int,
       isSurvivalMode: fields[5] == null ? false : fields[5] as bool,
-      isAlternatingSets: fields[6] == null ? false : fields[6] as bool,
+      workoutType: fields[6] as WorkoutType,
       wasStoppedPrematurely: fields[7] == null ? false : fields[7] as bool,
       totalSets: fields[8] as int,
     );
@@ -46,7 +46,7 @@ class WorkoutSummaryAdapter extends TypeAdapter<WorkoutSummary> {
       ..writeByte(5)
       ..write(obj.isSurvivalMode)
       ..writeByte(6)
-      ..write(obj.isAlternatingSets)
+      ..write(obj.workoutType)
       ..writeByte(7)
       ..write(obj.wasStoppedPrematurely)
       ..writeByte(8)

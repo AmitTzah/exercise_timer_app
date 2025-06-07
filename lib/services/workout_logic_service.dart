@@ -5,9 +5,11 @@ import 'package:exercise_timer_app/models/workout_item.dart'; // New: Import Wor
 
 /// Manages the core logic of workout structure and progression.
 /// This service is independent of UI or specific timer implementations.
+import 'package:exercise_timer_app/models/workout_type.dart';
+
 class WorkoutLogicService {
   final UserWorkout _baseWorkout;
-  final bool _isAlternateMode;
+  final WorkoutType _workoutType;
   final dynamic _selectedLevelOrMode; // int for level, String for "survival"
 
   late List<WorkoutSet> _exercisesToPerform;
@@ -16,14 +18,14 @@ class WorkoutLogicService {
 
   // Public getters for previously private members
   dynamic get selectedLevelOrMode => _selectedLevelOrMode;
-  bool get isAlternateMode => _isAlternateMode;
+  WorkoutType get workoutType => _workoutType;
 
   WorkoutLogicService({
     required UserWorkout baseWorkout,
-    required bool isAlternateMode,
+    required WorkoutType workoutType,
     required dynamic selectedLevelOrMode,
   })  : _baseWorkout = baseWorkout,
-        _isAlternateMode = isAlternateMode,
+        _workoutType = workoutType,
         _selectedLevelOrMode = selectedLevelOrMode {
     _initializeWorkoutSequence();
   }
@@ -69,7 +71,7 @@ class WorkoutLogicService {
 
     List<Exercise> adjustedExercises = _applyLevelModifier(originalExerciseItems);
 
-    if (_isAlternateMode) {
+    if (_workoutType == WorkoutType.alternating) {
       // Create a map for quick lookup of adjusted exercises by their original name
       Map<String, Exercise> adjustedExerciseMap = {
         for (var ae in adjustedExercises) ae.name: ae
@@ -99,16 +101,8 @@ class WorkoutLogicService {
                   isRestSet: false,
                   isRestBlock: false,
                 ));
-                // Add per-set rest if defined and not the last set of THIS exercise
-                if (adjustedExercise.restTimeInSeconds != null && adjustedExercise.restTimeInSeconds! > 0 && currentSet < adjustedExercise.sets) {
-                  sequence.add(WorkoutSet(
-                    exercise: adjustedExercise,
-                    setNumber: currentSet,
-                    isRestSet: true,
-                    isRestBlock: false,
-                    restBlockDuration: adjustedExercise.restTimeInSeconds,
-                  ));
-                }
+                // In alternating mode, per-set rests are not added here.
+                // Rest blocks are handled separately.
                 currentSetNumbers[originalExerciseName] = currentSet + 1; // Increment set number for this exercise
                 moreSetsExist = true; // More sets were added in this round
               }

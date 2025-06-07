@@ -5,19 +5,20 @@ import 'package:exercise_timer_app/services/audio_service.dart';
 import 'package:exercise_timer_app/screens/workout_summary_display_screen.dart';
 import 'package:exercise_timer_app/controllers/workout_controller.dart';
 import 'package:exercise_timer_app/models/workout_summary.dart';
+import 'package:exercise_timer_app/models/workout_type.dart';
 import 'package:exercise_timer_app/widgets/workout_timer_header.dart';
 import 'package:exercise_timer_app/widgets/workout_set_list.dart';
 import 'package:exercise_timer_app/widgets/workout_controls.dart';
 
 class WorkoutScreen extends StatefulWidget {
   final UserWorkout workout;
-  final bool isAlternateMode;
+  final WorkoutType workoutType;
   final dynamic selectedLevelOrMode; // int for level, String for "survival"
 
   const WorkoutScreen({
     super.key,
     required this.workout,
-    required this.isAlternateMode,
+    required this.workoutType,
     required this.selectedLevelOrMode,
   });
 
@@ -37,7 +38,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     _workoutController = WorkoutController(
       workout: widget.workout,
       audioService: audioService,
-      isAlternateMode: widget.isAlternateMode,
+      workoutType: widget.workoutType,
       selectedLevelOrMode: widget.selectedLevelOrMode,
     );
 

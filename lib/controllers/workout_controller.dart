@@ -7,7 +7,8 @@ import 'package:exercise_timer_app/models/workout_set.dart';
 import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:exercise_timer_app/services/workout_logic_service.dart';
 import 'package:exercise_timer_app/models/workout_completion_details.dart';
-import 'package:exercise_timer_app/models/workout_item.dart'; // Import new workout_item
+// Import new workout_item
+import 'package:exercise_timer_app/models/workout_type.dart';
 
 class WorkoutController extends ChangeNotifier {
   final UserWorkout _workout;
@@ -133,13 +134,13 @@ class WorkoutController extends ChangeNotifier {
   WorkoutController({
     required UserWorkout workout,
     required AudioService audioService,
-    required bool isAlternateMode,
+    required WorkoutType workoutType,
     required dynamic selectedLevelOrMode,
   })  : _workout = workout,
         _audioService = audioService,
         _workoutLogicService = WorkoutLogicService(
           baseWorkout: workout,
-          isAlternateMode: isAlternateMode,
+          workoutType: workoutType,
           selectedLevelOrMode: selectedLevelOrMode,
         ) {
     _workoutStartTime = DateTime.now();
@@ -288,7 +289,7 @@ class WorkoutController extends ChangeNotifier {
       workoutName: _workout.name,
       workoutLevel: _workoutLogicService.isSurvivalMode ? 1 : (_workoutLogicService.selectedLevelOrMode is int ? _workoutLogicService.selectedLevelOrMode : 1),
       isSurvivalMode: _workoutLogicService.isSurvivalMode,
-      isAlternatingSets: _workoutLogicService.isAlternateMode,
+      workoutType: _workoutLogicService.workoutType,
       // intervalTime: _workout.intervalTimeBetweenSets, // Removed as it's no longer global
       wasStoppedPrematurely: details.wasStoppedPrematurely,
       totalSets: details.finalPerformedSets.length,

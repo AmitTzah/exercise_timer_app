@@ -21,7 +21,7 @@ class UserWorkoutAdapter extends TypeAdapter<UserWorkout> {
       name: fields[1] as String,
       items: (fields[2] as List).cast<WorkoutItem>(),
       totalWorkoutTime: fields[3] as int,
-      selectedAlternateSets: fields[4] as bool?,
+      workoutType: fields[4] as WorkoutType,
       selectedLevel: fields[5] as int?,
       selectedSurvivalMode: fields[6] as bool?,
     );
@@ -40,7 +40,7 @@ class UserWorkoutAdapter extends TypeAdapter<UserWorkout> {
       ..writeByte(3)
       ..write(obj.totalWorkoutTime)
       ..writeByte(4)
-      ..write(obj.selectedAlternateSets)
+      ..write(obj.workoutType)
       ..writeByte(5)
       ..write(obj.selectedLevel)
       ..writeByte(6)

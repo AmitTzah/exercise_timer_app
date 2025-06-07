@@ -5,6 +5,7 @@ import 'package:exercise_timer_app/models/goal.dart';
 import 'package:exercise_timer_app/models/user_workout.dart';
 import 'package:exercise_timer_app/models/workout_set.dart';
 import 'package:exercise_timer_app/models/workout_item.dart'; // Import WorkoutItem and its concrete types
+import 'package:exercise_timer_app/models/workout_type.dart'; // Import WorkoutType
 
 class DatabaseService {
   static bool _isInitialized = false;
@@ -23,6 +24,7 @@ class DatabaseService {
     if (!Hive.isAdapterRegistered(4)) Hive.registerAdapter(RestBlockItemAdapter()); // RestBlockItem typeId
     if (!Hive.isAdapterRegistered(5)) Hive.registerAdapter(GoalAdapter()); // Goal typeId
     if (!Hive.isAdapterRegistered(6)) Hive.registerAdapter(WorkoutSetAdapter()); // WorkoutSet typeId
+    if (!Hive.isAdapterRegistered(7)) Hive.registerAdapter(WorkoutTypeAdapter()); // WorkoutType typeId
 
     _isInitialized = true;
   }

@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:exercise_timer_app/models/exercise.dart';
-import 'package:exercise_timer_app/models/workout_item.dart'; // Import WorkoutItem
+// Import WorkoutItem
 
 part 'workout_set.g.dart';
 

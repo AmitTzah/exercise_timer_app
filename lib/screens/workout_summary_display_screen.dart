@@ -65,7 +65,7 @@ class WorkoutSummaryDisplayScreen extends StatelessWidget {
             _buildSummaryRow(context, 'Date:', DateFormat('yyyy-MM-dd HH:mm').format(summary.date)),
             _buildSummaryRow(context, 'Total Duration:', _formatDuration(summary.totalDurationInSeconds)),
             _buildSummaryRow(context, 'Workout Level:', summary.workoutLevel.toString()),
-            _buildSummaryRow(context, 'Alternating Sets:', summary.isAlternatingSets ? 'Yes' : 'No'),
+            _buildSummaryRow(context, 'Sets Order:', summary.workoutType.toString().split('.').last == 'alternating' ? 'Alternating' : 'Sequential'),
             _buildSummaryRow(context, 'Total Sets Performed:', summary.totalSets.toString()),
             const SizedBox(height: 20),
             Text(

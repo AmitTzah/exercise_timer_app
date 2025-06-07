@@ -6,12 +6,12 @@ import 'package:exercise_timer_app/screens/workout_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:exercise_timer_app/models/workout_item.dart'; // Import WorkoutItem
 
+
 class WorkoutCard extends StatefulWidget {
   final UserWorkout workout;
   final String Function(int, {bool includeHours}) formatTime;
   final Function(BuildContext, dynamic, UserWorkout) showLevelSelectionBottomSheet;
   final Function(String) deleteWorkout;
-  final Map<String, bool> alternateModeSelections;
   final Map<String, int> levelSelections;
   final Map<String, bool> survivalModeSelections;
   final VoidCallback onSelectionsChanged; // Callback to notify parent of state changes
@@ -22,7 +22,6 @@ class WorkoutCard extends StatefulWidget {
     required this.formatTime,
     required this.showLevelSelectionBottomSheet,
     required this.deleteWorkout,
-    required this.alternateModeSelections,
     required this.levelSelections,
     required this.survivalModeSelections,
     required this.onSelectionsChanged,
@@ -60,6 +59,8 @@ class _WorkoutCardState extends State<WorkoutCard> {
             // 2. Workout Details Row
             Text('Total Time: ${widget.formatTime(widget.workout.totalWorkoutTime, includeHours: true)}'),
             const SizedBox(height: 8),
+            Text('Mode: ${widget.workout.workoutType.toString().split('.').last}'),
+            const SizedBox(height: 8),
 
             // 3. Workout Items List
             Text(
@@ -87,21 +88,6 @@ class _WorkoutCardState extends State<WorkoutCard> {
             const SizedBox(height: 12),
 
             // 4. Controls Section
-            // Alternate Sets Row
-            Row(
-              children: [
-                Checkbox(
-                  value: widget.alternateModeSelections[widget.workout.id] ?? false,
-                  onChanged: (bool? newValue) async {
-                    widget.alternateModeSelections[widget.workout.id] = newValue ?? false;
-                    widget.workout.selectedAlternateSets = newValue ?? false;
-                    await _userWorkoutRepository.saveUserWorkout(widget.workout);
-                    widget.onSelectionsChanged();
-                  },
-                ),
-                const Text('Alternate Sets'),
-              ],
-            ),
             // Survival Mode Checkbox
             Row(
               children: [
@@ -169,7 +155,7 @@ class _WorkoutCardState extends State<WorkoutCard> {
                       MaterialPageRoute(
                         builder: (context) => WorkoutScreen(
                           workout: widget.workout,
-                          isAlternateMode: widget.alternateModeSelections[widget.workout.id] ?? false,
+                          workoutType: widget.workout.workoutType,
                           selectedLevelOrMode: widget.survivalModeSelections[widget.workout.id] == true
                               ? "survival"
                               : (widget.levelSelections[widget.workout.id] ?? 1),

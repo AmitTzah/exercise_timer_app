@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:exercise_timer_app/models/workout_set.dart';
+import 'package:exercise_timer_app/models/workout_type.dart';
 
 part 'workout_summary.g.dart';
 
@@ -23,8 +24,8 @@ class WorkoutSummary extends HiveObject {
   @HiveField(5, defaultValue: false)
   bool isSurvivalMode;
 
-  @HiveField(6, defaultValue: false)
-  bool isAlternatingSets;
+  @HiveField(6)
+  WorkoutType workoutType;
 
   @HiveField(7, defaultValue: false) // New field for whether workout was stopped prematurely
   bool wasStoppedPrematurely;
@@ -39,7 +40,7 @@ class WorkoutSummary extends HiveObject {
     required this.workoutName,
     required this.workoutLevel,
     required this.isSurvivalMode,
-    required this.isAlternatingSets,
+    required this.workoutType,
     required this.wasStoppedPrematurely,
     required this.totalSets,
   });
