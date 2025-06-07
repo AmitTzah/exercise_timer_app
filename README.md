@@ -19,10 +19,14 @@ A personal Android exercise timer app designed to manage alternating sets for di
 
 *   **Define Workout Screen:**
     *   Users can create new workouts or edit existing ones.
-    *   Input fields for:
+*   Input fields for:
         *   Workout Name.
         *   List of exercises (users select from a predefined list of exercise names, each with number of sets, and optional number of reps).
         *   Set Interval Time (seconds) between sets.
+    *   **Include Rest Periods:** A toggle to enable or disable rest periods between exercises.
+    *   **Rest Duration (seconds):** If rest periods are enabled, users can specify the duration of each rest period.
+    *   **Reorder Exercises:** Users can reorder exercises using a drag-and-drop interface.
+    *   **Edit Exercises:** Users can edit the sets and reps of an exercise after it has been added to the workout.
     *   Displays: Calculated total workout duration.
     *   Action: "Save Workout" button.
     *   **Persistence:** User-defined workouts (including exercises, sets, and interval time) are saved using `Hive`.
@@ -33,7 +37,8 @@ A personal Android exercise timer app designed to manage alternating sets for di
     *   **Alternating Sets (If enabled):** Cycles through one set of each exercise before moving to the next set number for any exercise. For example, if you have Exercise A (3 sets) and Exercise B (2 sets), the order would be: A-Set1, B-Set1, A-Set2, B-Set2, A-Set3.
     *   **Workout Levels:** The total number of sets for each exercise is dynamically adjusted based on the selected level (1-10), ensuring a strictly increasing total set count across levels. The total set count is rounded up after the percentage increase.
     *   **Survival Mode:** The workout repeats indefinitely. The main timer displays elapsed time (counts up) instead of time remaining. The session ends only when the user manually presses "Finish Workout".
-    *   The app emits a "Next-Set.wav" sound at the end of each interval, immediately followed by the `exercise_name.wav` sound for the upcoming exercise, signaling the end of the current interval and the immediate start of the next exercise's set.
+*   The app emits a "workout_started.wav" sound at the beginning of each workout.
+*   The app emits a "Next-Set.wav" sound at the end of each interval, immediately followed by the `exercise_name.wav` sound for the upcoming exercise, signaling the end of the current interval and the immediate start of the next exercise's set.
     *   **Display during workout:**
         *   Current exercise to perform.
         *   Current set number for that exercise (e.g., "Pullups: Set 3/10, Reps: 12").
